@@ -1,0 +1,37 @@
+# Local M1 dev/iteration config (tiny subset + small model). Sanity checks only.
+run_name: tiny_local
+seed: 42
+
+data:
+  reciters:
+    - Husary_128kbps_Mujawwad
+  audio_dir: data/raw/audio
+  text_path: data/raw/text/quran_uthmani.json
+  processed_dir: data/processed
+  sample_rate: 16000
+  surahs: [1, 112, 113, 114]    # Al-Fatiha + 3 short surahs
+  max_duration_sec: 60
+  split:
+    strategy: by_surah
+    test_surahs: [114]
+    val_surahs: [113]
+    val_frac_within_train: 0.1
+
+model:
+  base: facebook/wav2vec2-base   # 95M — fits M1 MPS for sanity runs
+  vocab_path: data/artifacts/vocab.json
+  apply_spec_augment: true
+
+training:
+  epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 3.0e-4
+  warmup_ratio: 0.1
+  gradient_checkpointing: true
+  fp16: false                    # MPS fp16 is limited; keep off
+  masking_time_prob: 0.05
+
+logging:
+  output_dir: data/artifacts/checkpoints_tiny

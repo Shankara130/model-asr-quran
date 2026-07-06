@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Data (kept locally, never committed — multi-GB audio + datasets)
+data/raw/
+data/processed/
+data/artifacts/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Model checkpoints & logs
+checkpoints/
+runs/
+wandb/
+*.ckpt
+*.safetensors
+*.bin
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Secrets
+.env
+.env.*
+*.pem
+kaggle.json
+*.token
+hf_token*
+*credentials*
+
+# OS
+.DS_Store
+Thumbs.db
+
+docs/
+CLAUDE.md

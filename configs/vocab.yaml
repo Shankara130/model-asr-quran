@@ -1,0 +1,13 @@
+# Diacritics-aware CTC vocab build policy. Determines normalize_for_labels().
+keep_waqf: true                  # Quranic pause marks (optional tokens)
+keep_wasla: true                 # ٱ  wasla
+keep_superscript_alef: true      # ٰ  superscript alef (e.g. الرَّحْمَٰن)
+collapse_hamza_carriers: false   # keep أ إ آ ا distinct (different pronunciations)
+strip_tatweel: true              # ـ  kashida (typographic, not phonemic)
+strip_decorative_stops: true     # ۖ ۗ ۘ ۚ ۛ — decorative waqf symbols
+min_freq: 2                      # drop characters appearing < min_freq times (→ <unk>)
+vocab:
+  blank: "|"                     # CTC blank (HF Wav2Vec2 convention)
+  pad: "<pad>"
+  unk: "<unk>"
+  word_delimiter: " "
