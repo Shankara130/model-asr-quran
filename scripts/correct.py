@@ -10,9 +10,8 @@ from __future__ import annotations
 
 import argparse
 
-import soundfile as sf
-
 from quran_asr.alignment.corrector import load_corrector
+from quran_asr.audio_io import load_audio
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -23,12 +22,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--device", default=None)
     args = ap.parse_args(argv)
 
-    audio, sr = sf.read(args.audio)
-    if audio.ndim > 1:
-        audio = audio[:, 0]
+    audio, sr = load_audio(args.audio)
 
     corrector = load_corrector(args.model_dir, device=args.device)
-    results = corrector.correct(audio.tolist(), sr, args.text)
+    results = corrector.correct(audio, sr, args.text)
 
     print(f"{'#':>3}  {'status':<13}{'conf':>5}  {'start':>6}-{'end':<6}  word")
     for r in results:

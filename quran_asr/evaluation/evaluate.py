@@ -66,7 +66,9 @@ def evaluate(
     by_reciter_hyps: dict[str, list[str]] = defaultdict(list)
     for i in range(0, len(ds), batch_size):
         batch = ds[i:i + batch_size]
-        audios = [a["array"] for a in batch["audio"]]
+        from quran_asr.audio_io import load_audio
+
+        audios = [load_audio(p, cfg.data.sample_rate)[0] for p in batch["audio_path"]]
         hyps = _greedy_decode(model, processor, audios, device, cfg.data.sample_rate)
         for reciter, ref, hyp in zip(batch["reciter"], batch["text"], hyps, strict=True):
             by_reciter_refs[reciter].append(ref)
@@ -93,7 +95,10 @@ def _corrector_rates(model_dir, processor, ds, cfg, sample: int) -> dict[str, fl
     n = min(sample, len(ds))
     for i in range(n):
         ex = ds[i]
-        words = corrector.correct(ex["audio"]["array"], cfg.data.sample_rate, ex["text"])
+        from quran_asr.audio_io import load_audio
+
+        audio, sr = load_audio(ex["audio_path"], cfg.data.sample_rate)
+        words = corrector.correct(audio, sr, ex["text"])
         for w in words:
             counts[w.status] += 1
             total += 1

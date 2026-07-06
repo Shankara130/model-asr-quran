@@ -1,7 +1,8 @@
 """Assemble a HuggingFace ``DatasetDict`` from downloaded audio + diacritized text.
 
 Row schema:
-    audio       Audio(16kHz)         — decoded lazily, resampled on the fly
+    audio_path  str                  — path to the wav/mp3 (decoded on demand by
+                                       quran_asr.audio_io.load_audio; no torchcodec)
     text        str                  — diacritized, normalized (training target)
     text_plain  str                  — harakat-stripped skeleton (baseline WER)
     surah, ayah int
@@ -16,7 +17,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from datasets import Audio, Dataset, DatasetDict
+from datasets import Dataset, DatasetDict
 
 from quran_asr.config import Config
 from quran_asr.data_pipeline import splits as splits_mod
@@ -52,7 +53,7 @@ def collect_rows(cfg: Config) -> tuple[list[dict], list[dict]]:
                 continue  # manifest may reference a file deleted after download
             raw_text = text[key]
             rows.append({
-                "audio": r["path"],
+                "audio_path": r["path"],
                 "text": normalize(raw_text),
                 "text_plain": strip_diacritics(raw_text),
                 "surah": r["surah"],
@@ -71,7 +72,7 @@ def build_dataset(cfg: Config) -> DatasetDict:
             "no rows collected — check that audio is downloaded (make download) and "
             "that data.text_path / data.audio_dir are correct in the config")
 
-    ds = Dataset.from_list(rows).cast_column("audio", Audio(sampling_rate=cfg.data.sample_rate))
+    ds = Dataset.from_list(rows)
 
     split_idx = splits_mod.make_splits(meta, cfg.data.split, reciters=cfg.data.reciters,
                                        seed=cfg.seed)

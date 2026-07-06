@@ -29,9 +29,11 @@ def get_device() -> torch.device:
 
 
 def preprocess_dataset(processor, sample_rate: int):
+    from quran_asr.audio_io import load_audio
+
     def fn(batch):
-        audio = batch["audio"]
-        batch["input_values"] = processor(audio["array"], sampling_rate=sample_rate).input_values[0]
+        audio, sr = load_audio(batch["audio_path"], sample_rate)
+        batch["input_values"] = processor(audio, sampling_rate=sr).input_values[0]
         batch["labels"] = processor.tokenizer(batch["text"]).input_ids
         return batch
     return fn

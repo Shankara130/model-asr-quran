@@ -36,7 +36,7 @@ def main() -> int:
 
     # deps
     for mod in ["torch", "torchaudio", "transformers", "datasets", "evaluate",
-                "jiwer", "soundfile", "torchcodec", "huggingface_hub"]:
+                "jiwer", "soundfile", "librosa", "huggingface_hub"]:
         try:
             importlib.import_module(mod)
             _add("OK  ", f"dep {mod}")
