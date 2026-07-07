@@ -50,3 +50,7 @@ Thumbs.db
 
 docs/
 CLAUDE.md
+
+.cache/
+hf_cache/
+notebooks/hf_cache/

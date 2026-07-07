@@ -35,8 +35,21 @@ def main() -> int:
         _add("FAIL", "ffmpeg", "install: apt-get install -y ffmpeg")
 
     # deps
-    for mod in ["torch", "torchaudio", "transformers", "datasets", "evaluate",
-                "jiwer", "soundfile", "librosa", "huggingface_hub"]:
+    for mod in [
+        "accelerate",
+        "torch",
+        "torchaudio",
+        "transformers",
+        "datasets",
+        "evaluate",
+        "jiwer",
+        "soundfile",
+        "librosa",
+        "huggingface_hub",
+        "yaml",
+        "requests",
+        "tqdm",
+    ]:
         try:
             importlib.import_module(mod)
             _add("OK  ", f"dep {mod}")
@@ -54,10 +67,11 @@ def main() -> int:
 
     # disk (need ~15-20 GB for 2 reciters audio + checkpoints)
     try:
-        st = os.statvfs("/")
+        disk_path = "/content" if os.path.exists("/content") else "/"
+        st = os.statvfs(disk_path)
         gb = st.f_bavail * st.f_frsize / 1e9
         _add("OK  " if gb > 20 else "WARN", "disk free",
-             f"{gb:.1f} GB free (need ~15-20 GB)")
+             f"{gb:.1f} GB free on {disk_path} (need ~15-20 GB)")
     except Exception as exc:  # noqa: BLE001
         _add("WARN", "disk free", str(exc)[:80])
 
