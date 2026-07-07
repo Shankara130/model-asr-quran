@@ -19,9 +19,9 @@ data:
   reciters:
     - Husary_128kbps_Mujawwad     # slow tajweed (verified HTTP 200)
     - Minshawy_Murattal_128kbps   # faster murattal, speed diversity (verified 200)
-  audio_dir: /content/quran_asr/data/raw/audio
-  text_path: /content/quran_asr/data/raw/text/quran_uthmani.json
-  processed_dir: /content/quran_asr/data/processed
+  audio_dir: data/raw/audio
+  text_path: data/raw/text/quran_uthmani.json
+  processed_dir: data/processed
   sample_rate: 16000
   surahs: all
   max_duration_sec: 60
@@ -33,7 +33,7 @@ data:
 
 model:
   base: facebook/wav2vec2-large-xlsr-53
-  vocab_path: /content/quran_asr/data/artifacts/vocab.json
+  vocab_path: /data/artifacts/vocab.json
   apply_spec_augment: true
 
 training:
