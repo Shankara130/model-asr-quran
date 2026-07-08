@@ -28,6 +28,26 @@ from quran_asr.alignment.postprocess import tokens_to_words
 WordStatus = Literal["correct", "low_confidence", "skipped", "extra"]
 
 
+def make_model_normalizer(processor: Any):
+    """Build a normalizer that keeps only characters the model can encode.
+
+    A pretrained CTC model whose vocab differs from this project's
+    :func:`normalize` output (e.g. ``rabah2026/wav2vec2-...-quran`` keeps tatweel
+    and small letters but LACKS the hamza-above ``ٕ``) would otherwise emit
+    ``[UNK]`` tokens for un-encodable chars, corrupting forced alignment. This
+    drops exactly those chars. Safe for any model, including the project's own
+    (whose vocab covers everything ``normalize`` produces).
+    """
+    from quran_asr.data_pipeline.normalize import normalize
+
+    known = set(processor.tokenizer.get_vocab())
+
+    def norm(text: str) -> str:
+        return "".join(ch for ch in normalize(text) if ch in known or ch == " ")
+
+    return norm
+
+
 @dataclass
 class WordResult:
     text: str
@@ -46,29 +66,39 @@ class Corrector:
         device: str | torch.device | None = None,
         low_conf_threshold: float = 0.5,
         skip_threshold: float = 0.1,
+        normalizer=None,
     ):
         self.model = model
         self.processor = processor
         self.low_conf_threshold = low_conf_threshold
         self.skip_threshold = skip_threshold
+        self.normalizer = normalizer  # None -> align() uses the default normalize()
         if device is not None:
             self.model.to(device)
         self.device = next(self.model.parameters()).device
 
     def correct(self, audio: list[float], sample_rate: int, ref_text: str) -> list[WordResult]:
-        boundaries, _ = align(self.model, self.processor, audio, sample_rate, ref_text)
+        boundaries, _ = align(
+            self.model, self.processor, audio, sample_rate, ref_text, normalizer=self.normalizer
+        )
         words = tokens_to_words(boundaries, self.processor)
         return [
-            WordResult(text=w.text, start=w.start, end=w.end, confidence=w.confidence,
-                       status=self._classify(w.confidence, self.low_conf_threshold,
-                                             self.skip_threshold),
-                       index=w.index)
+            WordResult(
+                text=w.text,
+                start=w.start,
+                end=w.end,
+                confidence=w.confidence,
+                status=self._classify(w.confidence, self.low_conf_threshold, self.skip_threshold),
+                index=w.index,
+            )
             for w in words
         ]
 
     @staticmethod
     def _classify(
-        confidence: float, low_conf_threshold: float = 0.5, skip_threshold: float = 0.1,
+        confidence: float,
+        low_conf_threshold: float = 0.5,
+        skip_threshold: float = 0.1,
     ) -> WordStatus:
         if confidence < skip_threshold:
             return "skipped"
@@ -90,5 +120,10 @@ def load_corrector(
     final = root / "final" if (root / "final").exists() else root
     model = Wav2Vec2ForCTC.from_pretrained(str(final))
     processor = Wav2Vec2Processor.from_pretrained(str(final))
-    return Corrector(model, processor, device=device,
-                     low_conf_threshold=low_conf_threshold, skip_threshold=skip_threshold)
+    return Corrector(
+        model,
+        processor,
+        device=device,
+        low_conf_threshold=low_conf_threshold,
+        skip_threshold=skip_threshold,
+    )
