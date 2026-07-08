@@ -54,3 +54,5 @@ CLAUDE.md
 .cache/
 hf_cache/
 notebooks/hf_cache/
+.tokensave/
+backups/
