@@ -63,6 +63,28 @@ class TrainingConfig:
     eval_steps: int = 500
     save_steps: int = 500
     early_stopping_patience: int = 5
+    encoder_trainable_layers: int = 0
+    encoder_learning_rate: float | None = None
+    head_learning_rate: float | None = None
+    max_grad_norm: float = 0.5
+    best_metric: Literal["eval_loss", "wer", "cer", "wer_plain", "cer_plain"] = "wer_plain"
+    greater_is_better: bool = False
+    resume_from: Literal["best", "latest", "none"] = "latest"
+    eval_decode_samples: int = 0
+    blank_logit_bias_init: float = 0.0
+    auto_stage: bool = False
+    bootstrap_min_epochs: int = 3
+    bootstrap_max_epochs: int = 4
+    bootstrap_empty_threshold: float = 0.2
+    bootstrap_encoder_trainable_layers: int = 0
+    bootstrap_encoder_learning_rate: float = 1.0e-5
+    bootstrap_head_learning_rate: float = 1.0e-3
+    bootstrap_blank_logit_bias_init: float = -2.0
+    bootstrap_apply_spec_augment: bool = False
+    finetune_encoder_trainable_layers: int = 2
+    finetune_encoder_learning_rate: float = 5.0e-7
+    finetune_head_learning_rate: float = 3.0e-4
+    finetune_apply_spec_augment: bool = False
 
 
 @dataclass
