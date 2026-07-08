@@ -7,7 +7,7 @@
 #   uv run python scripts/train_manual.py --config configs/local_warmstart.yaml
 # For FROM-SCRATCH (no warm-start) on the same box, use configs/local_3050.yaml.
 
-run_name: local_warmstart_v1
+run_name: local_warmstart_cer_bootstrap_v2
 seed: 42
 
 data:
@@ -32,7 +32,7 @@ model:
   apply_spec_augment: false       # staging overrides this per stage
 
 training:
-  epochs: 10
+  epochs: 15
   per_device_train_batch_size: 1  # 6GB VRAM; eff batch = 1*16 = 16
   per_device_eval_batch_size: 1
   gradient_accumulation_steps: 16
@@ -44,32 +44,33 @@ training:
   masking_time_prob: 0.05
   eval_steps: 500
   save_steps: 500
-  early_stopping_patience: 3
+  early_stopping_patience: 5
   encoder_trainable_layers: 0
   encoder_learning_rate: 1.0e-5
   head_learning_rate: 1.0e-3
   max_grad_norm: 0.5
-  best_metric: wer_plain
+  best_metric: cer_plain
   greater_is_better: false
   resume_from: latest
   eval_decode_samples: 0
   blank_logit_bias_init: -2.0
   auto_stage: true
   # stage 1: head-only bootstrap (encoder frozen) — learn the project vocab
-  bootstrap_min_epochs: 3
-  bootstrap_max_epochs: 4
-  bootstrap_empty_threshold: 0.2
+  bootstrap_min_epochs: 5
+  bootstrap_max_epochs: 8
+  bootstrap_empty_threshold: 0.05
   bootstrap_encoder_trainable_layers: 0
   bootstrap_encoder_learning_rate: 1.0e-5
-  bootstrap_head_learning_rate: 7.0e-4
+  bootstrap_head_learning_rate: 1.0e-3
   bootstrap_blank_logit_bias_init: -2.0
   bootstrap_apply_spec_augment: false
   # stage 2: unfreeze last encoder layer at tiny lr (rabah2026 is already tuned)
   finetune_encoder_trainable_layers: 1
-  finetune_encoder_learning_rate: 5.0e-7
-  finetune_head_learning_rate: 3.0e-4
+  finetune_encoder_learning_rate: 2.0e-7
+  finetune_head_learning_rate: 2.0e-4
   finetune_apply_spec_augment: false
 
 logging:
   hub_repo: null                  # set + export HF_TOKEN to push to the Hub
-  output_dir: data/artifacts/checkpoints/local_warmstart
+  output_dir: data/artifacts/checkpoints/local_warmstart_cer_bootstrap_v2
+    
