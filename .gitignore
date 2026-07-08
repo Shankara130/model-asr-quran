@@ -19,6 +19,7 @@ htmlcov/
 data/raw/
 data/processed/
 data/artifacts/
+data/processed_tiny_warmstart/
 *.wav
 *.mp3
 *.flac
