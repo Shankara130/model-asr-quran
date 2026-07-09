@@ -2,106 +2,477 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <title>Quran ASR Inference — {{ model }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quran ASR Inference - {{ model.label }}</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 920px; margin: 2rem auto; padding: 0 1rem; color: #222; }
-    h1 { font-size: 1.4rem; }
-    .meta { color: #666; font-size: .85rem; margin-bottom: 1.5rem; }
-    form { background: #f7f7f8; padding: 1rem 1.2rem; border-radius: 8px; }
-    label { display: block; margin: .6rem 0 .2rem; font-weight: 600; font-size: .9rem; }
-    input, select, textarea { font-size: .95rem; padding: .35rem .4rem; }
-    input[type=file] { width: 100%; }
-    textarea { width: 100%; min-height: 2.4rem; font-family: inherit; }
-    .row { display: flex; gap: 1rem; }
-    .row > div { flex: 1; }
-    button { margin-top: 1rem; padding: .5rem 1.2rem; font-size: 1rem; cursor: pointer; }
-    .results { margin-top: 2rem; }
-    .box { background: #f7f7f8; padding: 1rem 1.2rem; border-radius: 8px; margin-bottom: 1rem; }
-    .ar { direction: rtl; font-size: 1.5rem; line-height: 2.4; text-align: right; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: .35rem .5rem; text-align: left; font-size: .9rem; }
-    th { background: #eee; }
-    td.ar { direction: rtl; text-align: right; font-size: 1.1rem; }
-    .correct { color: #1a7f37; font-weight: 700; }
-    .low_confidence { color: #9a6700; font-weight: 700; }
-    .skipped { color: #cf222e; font-weight: 700; }
-    .m { display: inline-block; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: .3rem .7rem; margin: .2rem .4rem .2rem 0; }
-    .note { color: #666; font-size: .82rem; }
+    :root {
+      color-scheme: light;
+      --ink: #202124;
+      --muted: #5f6368;
+      --line: #d7dce2;
+      --panel: #f7f8fa;
+      --accent: #0b6bcb;
+      --danger: #b42318;
+      --ok: #137333;
+      --warn: #9a6700;
+    }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(980px, calc(100% - 32px));
+      margin: 28px auto 48px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.45rem;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+    }
+    h3 {
+      margin: 22px 0 10px;
+      font-size: 1rem;
+    }
+    .meta, .note, .status {
+      color: var(--muted);
+      font-size: .86rem;
+    }
+    form, .box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    form {
+      margin-top: 18px;
+    }
+    label {
+      display: block;
+      margin: 12px 0 5px;
+      font-weight: 650;
+      font-size: .9rem;
+    }
+    input, select, textarea, button {
+      font: inherit;
+    }
+    input[type="file"], input[type="number"], select, textarea {
+      box-sizing: border-box;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 8px 9px;
+    }
+    textarea {
+      min-height: 54px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+    button.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+      font-weight: 700;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .55;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .recorder {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0 10px;
+    }
+    .timer {
+      justify-self: start;
+      min-width: 72px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      padding: 7px 10px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    audio {
+      width: 100%;
+      margin-top: 8px;
+    }
+    .results {
+      margin-top: 24px;
+    }
+    .box {
+      margin-bottom: 14px;
+    }
+    .ar {
+      direction: rtl;
+      font-size: 1.45rem;
+      line-height: 2.2;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+    .metrics {
+      margin: 10px 0 14px;
+    }
+    .m {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 5px 10px;
+      margin: 4px 6px 4px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px 8px;
+      text-align: left;
+      font-size: .9rem;
+    }
+    th {
+      background: #eef1f4;
+    }
+    td.ar {
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+    .correct {
+      color: var(--ok);
+      font-weight: 700;
+    }
+    .low_confidence {
+      color: var(--warn);
+      font-weight: 700;
+    }
+    .skipped {
+      color: var(--danger);
+      font-weight: 700;
+    }
+    .error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+    @media (max-width: 680px) {
+      .row, .recorder {
+        grid-template-columns: 1fr;
+      }
+      .timer {
+        justify-self: stretch;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Quran ASR Inference</h1>
-  <div class="meta">model: <code>{{ model }}</code> · device: <code>{{ device }}</code> · pretrained (no fine-tuning)</div>
+  <main>
+    <h1>Quran ASR Inference</h1>
+    <div class="meta">model: <code>{{ model.label }}</code> · device: <code>{{ device }}</code></div>
 
-  <form action="/infer" method="post" enctype="multipart/form-data">
-    <label for="audio">Audio file (.wav / .mp3) — Berkas audio</label>
-    <input type="file" id="audio" name="audio" accept=".wav,.mp3,.m4a,.flac" required>
+    <form id="infer-form" action="/infer" method="post" enctype="multipart/form-data">
+      <h2>Audio input</h2>
 
-    <div class="row">
-      <div>
-        <label for="surah">Surah (1–114)</label>
-        <select id="surah" name="surah">
-          <option value="">— pilih / optional —</option>
-          {% for s in surahs %}<option value="{{ s }}" {% if result and result.surah == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
-        </select>
+      <label for="model_key">ASR model</label>
+      <select id="model_key" name="model_key">
+        {% for key, choice in model_choices.items() %}
+        <option value="{{ key }}" data-note="{{ choice.note }}" {% if selected_model == key %}selected{% endif %}>
+          {{ choice.label }}
+        </option>
+        {% endfor %}
+      </select>
+      <div id="model-note" class="note">{{ model.note }}</div>
+
+      <div class="recorder">
+        <button type="button" id="record-start" class="primary">Start recording</button>
+        <button type="button" id="record-stop" class="danger" disabled>Stop</button>
+        <div id="record-timer" class="timer">00:00</div>
       </div>
-      <div>
-        <label for="ayah">Ayah number</label>
-        <input type="number" id="ayah" name="ayah" min="1" value="{{ result.ayah if result and result.ayah else '' }}">
+      <div id="record-status" class="status">Microphone belum aktif.</div>
+      <audio id="record-preview" controls hidden></audio>
+
+      <label for="audio">Audio file atau hasil recording</label>
+      <input type="file" id="audio" name="audio" accept=".wav,.mp3,.m4a,.flac,audio/*" required>
+      <div class="note">Recording dari browser akan otomatis masuk sebagai <code>recording.wav</code>.</div>
+
+      <div class="row">
+        <div>
+          <label for="surah">Surah (1-114)</label>
+          <select id="surah" name="surah">
+            <option value="">Pilih / optional</option>
+            {% for s in surahs %}
+            <option value="{{ s }}" {% if result and result.surah == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="ayah">Ayah number</label>
+          <input type="number" id="ayah" name="ayah" min="1" value="{{ result.ayah if result and result.ayah else '' }}">
+        </div>
       </div>
-    </div>
 
-    <label for="reference">Reference text (override) — Teks rujukan (opsional, timpa surah/ayah)</label>
-    <textarea id="reference" name="reference">{{ result.ref if result and result.ref else '' }}</textarea>
-    <div class="note">Kosongkan surah/ayah & teks untuk ASR saja (tanpa koreksi/metrik).</div>
+      <label for="reference">Reference text override</label>
+      <textarea id="reference" name="reference">{{ result.ref if result and result.ref else '' }}</textarea>
+      <div class="note">Kosongkan surah/ayah dan reference untuk ASR saja tanpa koreksi/metrik.</div>
 
-    <button type="submit">Infer / Transcribe</button>
-  </form>
+      <button type="submit" class="primary">Infer / Transcribe</button>
+    </form>
 
-  {% if result %}
-  <div class="results">
-    <div class="box">
-      <label>ASR transcription (greedy)</label>
-      <div class="ar">{{ result.asr or '—' }}</div>
-    </div>
+    {% if result %}
+    <section class="results">
+      {% if result.error %}
+      <div class="box error">{{ result.error }}</div>
+      {% endif %}
 
-    {% if result.ref %}
-    <div class="box">
-      <label>Reference{% if result.surah and result.ayah %} ({{ result.surah }}:{{ result.ayah }}){% endif %}</label>
-      <div class="ar">{{ result.ref }}</div>
-    </div>
+      <div class="box">
+        <label>ASR transcription</label>
+        <div class="ar">{{ result.asr if result.asr else '-' }}</div>
+        {% if result.asr_empty %}
+        <div class="note">Model mengembalikan teks kosong.</div>
+        {% endif %}
+      </div>
 
-    {% if result.metrics %}
-    <div>
-      <span class="m">WER {{ '%.3f'|format(result.metrics.wer) }}</span>
-      <span class="m">CER {{ '%.3f'|format(result.metrics.cer) }}</span>
-      <span class="m">WER (plain) {{ '%.3f'|format(result.metrics.wer_plain) }}</span>
-      <span class="m">CER (plain) {{ '%.3f'|format(result.metrics.cer_plain) }}</span>
-    </div>
-    <div class="note">Catatan: WER tinggi sebagian karena konvensi <code>ٱ</code> (alef-wasla) vs <code>ا</code> — homofon yang model tulis sebagai <code>ا</code>.</div>
+      {% if result.ref %}
+      <div class="box">
+        <label>Reference{% if result.surah and result.ayah %} ({{ result.surah }}:{{ result.ayah }}){% endif %}</label>
+        <div class="ar">{{ result.ref }}</div>
+      </div>
+
+      {% if result.metrics %}
+      <div class="metrics">
+        <span class="m">WER {{ '%.3f'|format(result.metrics.wer) }}</span>
+        <span class="m">CER {{ '%.3f'|format(result.metrics.cer) }}</span>
+        <span class="m">WER plain {{ '%.3f'|format(result.metrics.wer_plain) }}</span>
+        <span class="m">CER plain {{ '%.3f'|format(result.metrics.cer_plain) }}</span>
+      </div>
+      {% endif %}
+
+      {% if result.words %}
+      <h3>Word-level corrector</h3>
+      <table>
+        <tr>
+          <th>#</th>
+          <th>word</th>
+          <th>status</th>
+          <th>conf</th>
+          <th>start-end (s)</th>
+        </tr>
+        {% for w in result.words %}
+        <tr>
+          <td>{{ w.index }}</td>
+          <td class="ar">{{ w.text }}</td>
+          <td class="{{ w.status }}">{{ w.status }}</td>
+          <td>{{ '%.2f'|format(w.confidence) }}</td>
+          <td>{{ '%.2f'|format(w.start) }}-{{ '%.2f'|format(w.end) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% elif result.word_error %}
+      <div class="note">Corrector error: {{ result.word_error }}</div>
+      {% endif %}
+      {% else %}
+      <div class="note">No reference provided - ASR only.</div>
+      {% endif %}
+    </section>
     {% endif %}
+  </main>
 
-    {% if result.words %}
-    <h3>Word-level corrector (forced alignment)</h3>
-    <table>
-      <tr><th>#</th><th>word</th><th>status</th><th>conf</th><th>start–end (s)</th></tr>
-      {% for w in result.words %}
-      <tr>
-        <td>{{ w.index }}</td>
-        <td class="ar">{{ w.text }}</td>
-        <td class="{{ w.status }}">{{ w.status }}</td>
-        <td>{{ '%.2f'|format(w.confidence) }}</td>
-        <td>{{ '%.2f'|format(w.start) }}–{{ '%.2f'|format(w.end) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% elif result.word_error %}
-    <div class="note">Corrector error: {{ result.word_error }}</div>
-    {% endif %}
-    {% else %}
-    <div class="note">No reference provided — ASR only (no WER/corrector).</div>
-    {% endif %}
-  </div>
-  {% endif %}
+  <script>
+    const startButton = document.getElementById("record-start");
+    const stopButton = document.getElementById("record-stop");
+    const timer = document.getElementById("record-timer");
+    const statusEl = document.getElementById("record-status");
+    const preview = document.getElementById("record-preview");
+    const audioInput = document.getElementById("audio");
+    const modelSelect = document.getElementById("model_key");
+    const modelNote = document.getElementById("model-note");
+
+    let audioContext = null;
+    let stream = null;
+    let source = null;
+    let processor = null;
+    let chunks = [];
+    let recordingStartedAt = 0;
+    let timerHandle = null;
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const seconds = String(totalSeconds % 60).padStart(2, "0");
+      return `${minutes}:${seconds}`;
+    }
+
+    function startTimer() {
+      recordingStartedAt = Date.now();
+      timer.textContent = "00:00";
+      timerHandle = window.setInterval(() => {
+        timer.textContent = formatTime(Date.now() - recordingStartedAt);
+      }, 250);
+    }
+
+    function stopTimer() {
+      if (timerHandle) {
+        window.clearInterval(timerHandle);
+        timerHandle = null;
+      }
+    }
+
+    function writeString(view, offset, value) {
+      for (let i = 0; i < value.length; i += 1) {
+        view.setUint8(offset + i, value.charCodeAt(i));
+      }
+    }
+
+    function encodeWav(buffers, sampleRate) {
+      const length = buffers.reduce((sum, buffer) => sum + buffer.length, 0);
+      const samples = new Float32Array(length);
+      let offset = 0;
+      for (const buffer of buffers) {
+        samples.set(buffer, offset);
+        offset += buffer.length;
+      }
+
+      const bytesPerSample = 2;
+      const dataSize = samples.length * bytesPerSample;
+      const wav = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(wav);
+
+      writeString(view, 0, "RIFF");
+      view.setUint32(4, 36 + dataSize, true);
+      writeString(view, 8, "WAVE");
+      writeString(view, 12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * bytesPerSample, true);
+      view.setUint16(32, bytesPerSample, true);
+      view.setUint16(34, 8 * bytesPerSample, true);
+      writeString(view, 36, "data");
+      view.setUint32(40, dataSize, true);
+
+      let pos = 44;
+      for (let i = 0; i < samples.length; i += 1) {
+        const sample = Math.max(-1, Math.min(1, samples[i]));
+        view.setInt16(pos, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        pos += 2;
+      }
+
+      return new Blob([wav], { type: "audio/wav" });
+    }
+
+    async function startRecording() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            channelCount: 1
+          }
+        });
+
+        audioContext = new AudioContext();
+        source = audioContext.createMediaStreamSource(stream);
+        processor = audioContext.createScriptProcessor(4096, 1, 1);
+        chunks = [];
+
+        processor.onaudioprocess = (event) => {
+          chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        preview.hidden = true;
+        startTimer();
+        setStatus("Recording aktif. Klik Stop setelah selesai membaca.");
+      } catch (error) {
+        setStatus(`Microphone gagal diakses: ${error.message}`);
+      }
+    }
+
+    async function stopRecording() {
+      stopButton.disabled = true;
+      startButton.disabled = false;
+      stopTimer();
+
+      if (processor) {
+        processor.disconnect();
+        processor.onaudioprocess = null;
+      }
+      if (source) {
+        source.disconnect();
+      }
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+
+      const sampleRate = audioContext ? audioContext.sampleRate : 48000;
+      if (audioContext) {
+        await audioContext.close();
+      }
+
+      const wavBlob = encodeWav(chunks, sampleRate);
+      const file = new File([wavBlob], "recording.wav", { type: "audio/wav" });
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      audioInput.files = transfer.files;
+
+      preview.src = URL.createObjectURL(wavBlob);
+      preview.hidden = false;
+      setStatus(`Recording siap diproses: ${file.name}, ${(file.size / 1024).toFixed(1)} KB.`);
+
+      audioContext = null;
+      stream = null;
+      source = null;
+      processor = null;
+      chunks = [];
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      startButton.disabled = true;
+      setStatus("Browser ini belum mendukung microphone recording.");
+    } else {
+      startButton.addEventListener("click", startRecording);
+      stopButton.addEventListener("click", stopRecording);
+    }
+
+    modelSelect.addEventListener("change", () => {
+      const option = modelSelect.options[modelSelect.selectedIndex];
+      modelNote.textContent = option.dataset.note || "";
+    });
+  </script>
 </body>
 </html>

@@ -15,9 +15,16 @@ from pathlib import Path
 def load_audio(path: str | Path, target_sr: int = 16000) -> tuple[list[float], int]:
     """Return (mono float32 waveform, sample_rate). Resamples if needed."""
     import numpy as np
-    import soundfile as sf
 
-    data, sr = sf.read(str(path), dtype="float32", always_2d=False)
+    try:
+        import soundfile as sf
+
+        data, sr = sf.read(str(path), dtype="float32", always_2d=False)
+    except Exception:
+        import librosa
+
+        data, sr = librosa.load(str(path), sr=target_sr, mono=True)
+
     if data.ndim > 1:
         data = data[:, 0]
     if sr != target_sr:
