@@ -29,6 +29,7 @@ data/processed_tiny_warmstart/
 checkpoints/
 runs/
 wandb/
+external/
 *.ckpt
 *.safetensors
 *.bin
