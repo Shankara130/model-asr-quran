@@ -9,6 +9,14 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 def index():
     return render_template("index.html")
 
+@socketio.on("audio_chunk")
+def handle_audio_chunk(audio_data):
+    print(f"Audio diterima: {len(audio_data)} bytes")
+
+
+@socketio.on("recording_stopped")
+def handle_recording_stopped():
+    print("Rekaman browser dihentikan.")
 
 if __name__ == "__main__":
     socketio.run(
