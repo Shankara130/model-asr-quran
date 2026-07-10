@@ -1,21 +1,685 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quran Recitation Test</title>
 
-    <title>Quran Recitation Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7f5;
+      color: #1f2937;
+    }
+
+    .word-label {
+      margin-bottom: 4px;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .word-arabic {
+      font-size: 30px;
+      line-height: 1.5;
+    }
+
+    .word-score {
+      min-width: 64px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #c2410c;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .word-comparison {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .word-comparison>div:not(.comparison-arrow) {
+      padding: 12px;
+      border-radius: 12px;
+      background: #f9fafb;
+    }
+
+    .word-comparison small {
+      display: block;
+      margin-bottom: 4px;
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .comparison-arrow {
+      color: #9ca3af;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .word-issue {
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+
+    .issue-icon {
+      display: inline-flex;
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #f97316;
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .word-result-item {
+      padding: 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #ffffff;
+    }
+
+    .word-result-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: #374151;
+    }
+
+    .word-result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .word-result-grid>div {
+      padding: 10px;
+      border-radius: 10px;
+      background: #f9fafb;
+    }
+
+    .word-result-grid small {
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .word-issues {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .word-issue {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: #fff7ed;
+    }
+
+    .container {
+      width: min(100%, 760px);
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    .header {
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+    }
+
+    .header p {
+      margin: 0;
+      color: #6b7280;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font: inherit;
+      background: white;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .mode-description {
+      margin: 4px 0 0;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    #startButton {
+      background: #15803d;
+      color: white;
+    }
+
+    #stopButton {
+      background: #dc2626;
+      color: white;
+    }
+
+    .secondary-button {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f3f4f6;
+      font-size: 14px;
+    }
+
+    .arabic {
+      direction: rtl;
+      text-align: right;
+      font-family: "Amiri Quran", "Amiri", serif;
+      font-size: 34px;
+      line-height: 2.2;
+      unicode-bidi: plaintext;
+    }
+
+    .phoneme {
+      direction: rtl;
+      text-align: right;
+      font-family: "Amiri", serif;
+      font-size: 24px;
+      line-height: 2;
+      word-break: break-word;
+      unicode-bidi: plaintext;
+    }
+
+    .audio-reference {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #f9fafb;
+    }
+
+    .audio-reference-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .audio-reference audio {
+      width: 100%;
+    }
+
+    .letter-panel {
+      padding: 18px;
+      border-radius: 16px;
+      background: #f9fafb;
+      text-align: center;
+    }
+
+    .letter-progress {
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .letter-display {
+      direction: rtl;
+      margin: 12px 0 4px;
+      font-family: "Amiri Quran", "Amiri", serif;
+      font-size: 74px;
+      line-height: 1.3;
+    }
+
+    .letter-name {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .latin-hint {
+      margin-top: 4px;
+      color: #6b7280;
+    }
+
+    .warning-box {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #fff7ed;
+      border-left: 5px solid #f97316;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .letter-navigation {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .score-box {
+      padding: 14px 10px;
+      border-radius: 14px;
+      background: #f9fafb;
+      text-align: center;
+    }
+
+    .score-label {
+      color: #6b7280;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .score-value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .difference-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .difference-item {
+      padding: 12px;
+      border-radius: 12px;
+      border-left: 5px solid;
+    }
+
+    .difference-delete {
+      background: #fef2f2;
+      border-color: #dc2626;
+    }
+
+    .difference-replace {
+      background: #fff7ed;
+      border-color: #f97316;
+    }
+
+    .difference-insert {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
+
+    .diff-label {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .diff-text {
+      direction: rtl;
+      font-family: "Amiri", serif;
+      font-size: 22px;
+    }
+
+    .good {
+      color: #15803d;
+    }
+
+    .bad {
+      color: #dc2626;
+    }
+
+    .feedback-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .feedback-correct {
+      background: #15803d;
+      color: white;
+    }
+
+    .feedback-incorrect {
+      background: #f97316;
+      color: white;
+    }
+
+    .feedback-options {
+      margin-top: 16px;
+      padding: 14px;
+      background: #f9fafb;
+      border-radius: 14px;
+    }
+
+    .feedback-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .feedback-option input {
+      width: auto;
+      margin-top: 3px;
+    }
+
+    #submitFeedback {
+      width: 100%;
+      margin-top: 12px;
+      background: #2563eb;
+      color: white;
+    }
+
+    .feedback-status {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #15803d;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+
+    .word-result-item {
+      padding: 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .word-result-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: #374151;
+    }
+
+    .word-result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .word-result-grid>div {
+      padding: 10px;
+      border-radius: 10px;
+      background: #f9fafb;
+    }
+
+    .word-result-grid small {
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .word-issues {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .word-issue {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: #fff7ed;
+    }
+
+    @media (max-width: 520px) {
+
+      .form-grid,
+      .actions,
+      .score-grid,
+      .feedback-actions,
+      .letter-navigation {
+        grid-template-columns: 1fr;
+      }
+
+      .arabic {
+        font-size: 26px;
+      }
+
+      .phoneme {
+        font-size: 20px;
+      }
+
+      .letter-display {
+        font-size: 64px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-    <h1>Koreksi Bacaan Al-Qur'an</h1>
+  <main class="container">
+    <section class="header">
+      <h1>Koreksi Bacaan Al-Qur'an</h1>
+      <p>Uji bacaan ayat atau ukur kemampuan model mengenali bunyi huruf hijaiyah.</p>
+    </section>
 
-    <button id="startButton">Mulai Rekam</button>
-    <button id="stopButton" disabled>Berhenti</button>
+    <section class="card">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="tester">Nama penguji</label>
+          <input id="tester" type="text" value="Anonim">
+        </div>
 
-    <p id="status">Mikrofon belum aktif.</p>
+        <div class="form-group full">
+          <label for="testMode">Metode pengujian</label>
+          <select id="testMode">
+            <option value="random">Ayat Random</option>
+            <option value="ayat_pilihan">Ayat Pilihan</option>
+            <option value="uji_huruf">Uji Huruf Hijaiyah</option>
+          </select>
+          <p id="modeDescription" class="mode-description">Sistem memilih ayat secara otomatis.</p>
+        </div>
 
-    <script src="{{ url_for('static', filename='recorder.js') }}"></script>
+        <div id="verseSelection" class="form-group full">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="surah">Nomor surah</label>
+              <input id="surah" type="number" min="1" max="114" value="1">
+            </div>
+            <div class="form-group">
+              <label for="ayah">Nomor ayat</label>
+              <input id="ayah" type="number" min="1" value="1">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="startButton">Mulai Rekam</button>
+        <button id="stopButton" disabled>Berhenti</button>
+      </div>
+      <div id="status" class="status">Siap memulai.</div>
+    </section>
+
+    <section id="verseTargetCard" class="card">
+      <h2>Target Ayat</h2>
+      <div id="targetText" class="arabic">-</div>
+      <h3>Fonem Target</h3>
+      <div id="targetPhoneme" class="phoneme">-</div>
+
+      <div id="audioReference" class="audio-reference">
+        <span class="audio-reference-label">Contoh bacaan Minshawy</span>
+        <audio id="referenceAudio" controls preload="none">Browser tidak mendukung audio.</audio>
+      </div>
+    </section>
+
+    <section id="letterTargetCard" class="card" hidden>
+      <h2>Uji Huruf Hijaiyah</h2>
+      <div class="letter-panel">
+        <div id="letterProgress" class="letter-progress">Bunyi 1 dari 84</div>
+        <div id="letterDisplay" class="letter-display">أَ</div>
+        <div id="letterName" class="letter-name">Alif/Hamzah — fathah</div>
+        <div id="latinHint" class="latin-hint">Baca: a</div>
+        <div id="letterWarning" class="warning-box">Baca satu bunyi dengan jelas dan singkat.</div>
+      </div>
+
+      <div class="letter-navigation">
+        <button id="previousLetter" class="secondary-button" type="button">Sebelumnya</button>
+        <button id="resetLetter" class="secondary-button" type="button">Mulai dari Awal</button>
+        <button id="nextLetter" class="secondary-button" type="button">Berikutnya</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Fonem Realtime</h2>
+      <div id="livePhoneme" class="phoneme">-</div>
+    </section>
+
+    <section id="resultCard" class="card" hidden>
+      <h2>Hasil Pengujian</h2>
+      <div class="score-grid">
+        <div class="score-box">
+          <div class="score-label">Similarity</div>
+          <div id="similarityValue" class="score-value">-</div>
+        </div>
+        <div class="score-box">
+          <div class="score-label">CER</div>
+          <div id="cerValue" class="score-value">-</div>
+        </div>
+        <div class="score-box">
+          <div class="score-label">Status</div>
+          <div id="matchValue" class="score-value">-</div>
+        </div>
+      </div>
+
+      <h3>Target yang Dinilai</h3>
+      <div id="resultTarget" class="phoneme">-</div>
+      <h3>Hasil Deteksi</h3>
+      <div id="finalPhoneme" class="phoneme">-</div>
+      <h3>Bagian yang Perlu Diperiksa</h3>
+      <div id="differenceList" class="difference-list"></div>
+
+      <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+      <div id="feedbackSection">
+        <h3>Apakah hasil deteksi sesuai dengan bunyi yang dibaca?</h3>
+        <p style="color:#6b7280;">Pilih “Sesuai” bila teks hasil deteksi memang mencerminkan suara penguji.</p>
+        <div class="feedback-actions">
+          <button id="feedbackCorrect" type="button" class="feedback-correct">Sesuai</button>
+          <button id="feedbackIncorrect" type="button" class="feedback-incorrect">Tidak sesuai</button>
+        </div>
+
+        <div id="feedbackOptions" class="feedback-options" hidden>
+          <strong>Pilih masalah yang ditemukan:</strong>
+          <div style="margin-top:14px;">
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue"
+                value="missing_phoneme"><span>Fonem hilang salah terdeteksi</span></label>
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue" value="extra_phoneme"><span>Fonem
+                tambahan salah terdeteksi</span></label>
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue"
+                value="wrong_replacement"><span>Fonem berubah salah terdeteksi</span></label>
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue"
+                value="wrong_length"><span>Panjang bacaan salah terdeteksi</span></label>
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue" value="cut_off"><span>Hasil
+                bacaan terpotong</span></label>
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue"
+                value="far_prediction"><span>Hasil prediksi jauh dari bacaan</span></label>
+            <label class="feedback-option"><input type="checkbox" name="feedbackIssue" value="other"><span>Masalah
+                lainnya</span></label>
+          </div>
+          <label for="manualFeedback">Catatan tambahan</label>
+          <textarea id="manualFeedback" placeholder="Opsional, tuliskan detail jika diperlukan..."></textarea>
+          <button id="submitFeedback" type="button">Kirim Feedback</button>
+        </div>
+        <div id="feedbackStatus" class="feedback-status"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='recorder.js') }}"></script>
 </body>
+
 </html>
