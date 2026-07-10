@@ -79,6 +79,10 @@ Realistic quality ceiling with this data + free-GPU budget:
 `WER_plain ~5–10%`, `WER_diac ~15–30%` (harakat errors dominate). Good enough for
 "did they recite the right words?", not yet for "was this tajweed correct?".
 
+```
+python -m web.app
+```
+
 ## License
 
 Code: MIT. Audio © EveryAyah reciters; text from quran.com (Tanzil/Uthmani).

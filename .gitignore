@@ -58,3 +58,6 @@ hf_cache/
 notebooks/hf_cache/
 .tokensave/
 backups/
+
+# Web runtime evaluation data
+web/data/*.jsonl
