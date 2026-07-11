@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sobat-ngaji-api
+    runtime: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./deploy/api/Dockerfile
+    healthCheckPath: /v1/health
+    envVars:
+      - key: SOBAT_ENV
+        value: production
+      - key: SOBAT_CORS_ORIGINS
+        value: '["*"]'
+      - key: SOBAT_TOKEN_SECRET
+        generateValue: true
