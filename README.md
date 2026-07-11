@@ -79,6 +79,32 @@ Realistic quality ceiling with this data + free-GPU budget:
 `WER_plain ~5–10%`, `WER_diac ~15–30%` (harakat errors dominate). Good enough for
 "did they recite the right words?", not yet for "was this tajweed correct?".
 
+## Backend API (FastAPI)
+
+The `api/` package wraps the ASR engine behind the **Sobat Ngaji** backend contract
+(`BackendRequirements.md`): auth, profile, home, practice items/sessions, chunked +
+simple audio upload, WebSocket realtime, evaluation, and insights. It is **separate**
+from the Flask demo in `web/` (which stays intact) and **reuses `web/services/*`**
+verbatim.
+
+The app **boots without the ONNX model** — only the evaluation path loads it lazily.
+All non-auth endpoints require `Authorization: Bearer <token>`; responses follow the
+spec's standard error shape with `X-Request-Id`.
+
+```bash
+make backend-setup   # uv sync --extra backend (no sherpa_onnx / model needed)
+make backend         # uvicorn on 127.0.0.1:8000  (python -m api)
+make backend-test    # pytest api/tests
+```
+
+Dev auth is a stub: login as `alya@sobat.ngaji` with any password. To run real
+evaluation, drop the model under `external/zipformer_p-quran/` and
+`uv sync --extra asr`.
+
+## Flask demo
+
+The original single-page ASR tester (Flask + Flask-SocketIO) still runs separately:
+
 ```
 python -m web.app
 ```

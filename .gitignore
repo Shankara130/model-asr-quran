@@ -20,6 +20,8 @@ data/raw/
 data/processed/
 data/artifacts/
 data/processed_tiny_warmstart/
+# Backend runtime: dev SQLite db + uploaded/assembled audio
+data/var/
 *.wav
 *.mp3
 *.flac

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-import sherpa_onnx
 
 from web.config import MODEL_PATH, SAMPLE_RATE, TOKENS_PATH
 
@@ -17,16 +16,19 @@ def extract_text(result: Any) -> str:
 
 class ASRService:
     def __init__(self) -> None:
-        self.recognizer = (
-            sherpa_onnx.OnlineRecognizer.from_zipformer2_ctc(
-                tokens=str(TOKENS_PATH),
-                model=str(MODEL_PATH),
-                num_threads=2,
-                provider="cpu",
-                sample_rate=SAMPLE_RATE,
-                feature_dim=80,
-                decoding_method="greedy_search",
-            )
+        # Imported lazily so this module can be imported (and the FastAPI app can
+        # boot) without sherpa_onnx / the ONNX model installed. Only the actual
+        # ASR path needs them.
+        import sherpa_onnx
+
+        self.recognizer = sherpa_onnx.OnlineRecognizer.from_zipformer2_ctc(
+            tokens=str(TOKENS_PATH),
+            model=str(MODEL_PATH),
+            num_threads=2,
+            provider="cpu",
+            sample_rate=SAMPLE_RATE,
+            feature_dim=80,
+            decoding_method="greedy_search",
         )
 
     def create_stream(self):
@@ -53,9 +55,7 @@ class ASRService:
         while self.recognizer.is_ready(stream):
             self.recognizer.decode_stream(stream)
 
-        return extract_text(
-            self.recognizer.get_result(stream)
-        )
+        return extract_text(self.recognizer.get_result(stream))
 
     def finish_stream(self, stream) -> str:
         stream.input_finished()
@@ -63,6 +63,4 @@ class ASRService:
         while self.recognizer.is_ready(stream):
             self.recognizer.decode_stream(stream)
 
-        return extract_text(
-            self.recognizer.get_result(stream)
-        )
+        return extract_text(self.recognizer.get_result(stream))
