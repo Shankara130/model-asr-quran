@@ -19,9 +19,10 @@ All endpoints **except** `POST /v1/auth/{signup,login,refresh,logout}` require:
 Authorization: Bearer <accessToken>
 ```
 
-> **Dev stub auth:** passwords are not verified; sign in as the seeded dev user
-> `alya@sobat.ngaji` with any password. Access tokens are HMAC-signed
-> (`itsdangerous`) and short-lived; refresh tokens are hashed at rest.
+> **Supabase auth:** when `SOBAT_SUPABASE_URL` and `SOBAT_SUPABASE_ANON_KEY`
+> are set, auth delegates to Supabase Auth and Bearer tokens are Supabase access
+> tokens. Without those env vars, local dev falls back to the seeded stub user
+> `alya@sobat.ngaji` with any password.
 
 ### Standard headers
 Send `X-Request-Id: <uuid>` on requests (one is generated if omitted); every
