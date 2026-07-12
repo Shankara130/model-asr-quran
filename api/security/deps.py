@@ -9,6 +9,8 @@ from api.db import get_db
 from api.db.models import PracticeSession, User
 from api.security import CurrentUser
 from api.security.tokens import verify_access_token
+from api.services.supabase_auth import SupabaseAuthClient, sync_supabase_user
+from api.settings import supabase_auth_enabled
 
 
 async def _load_user(db: AsyncSession, user_id: str) -> User:
@@ -30,8 +32,12 @@ async def require_auth(
     if not header.lower().startswith("bearer "):
         raise ApiError("auth_token_expired")
     token = header.split(" ", 1)[1].strip()
-    payload = verify_access_token(token)
-    user = await _load_user(db, payload["sub"])
+    if supabase_auth_enabled():
+        supabase_user = await SupabaseAuthClient().get_user(token)
+        user = await sync_supabase_user(db, supabase_user)
+    else:
+        payload = verify_access_token(token)
+        user = await _load_user(db, payload["sub"])
 
     principal = CurrentUser(
         user_id=user.id,
