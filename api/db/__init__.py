@@ -23,10 +23,15 @@ engine = create_async_engine(
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
+def is_sqlite() -> bool:
+    return engine.url.get_backend_name().startswith("sqlite")
+
+
 async def get_db() -> AsyncIterator[AsyncSession]:
     """FastAPI dependency yielding an async session with FK enforcement on."""
     async with SessionLocal() as session:
-        await session.execute(text("PRAGMA foreign_keys=ON"))
+        if is_sqlite():
+            await session.execute(text("PRAGMA foreign_keys=ON"))
         yield session
 
 
@@ -36,5 +41,6 @@ async def init_db() -> None:
     settings.audio_dir.mkdir(parents=True, exist_ok=True)
 
     async with engine.begin() as conn:
-        await conn.execute(text("PRAGMA journal_mode=WAL"))
+        if is_sqlite():
+            await conn.execute(text("PRAGMA journal_mode=WAL"))
         await conn.run_sync(Base.metadata.create_all)

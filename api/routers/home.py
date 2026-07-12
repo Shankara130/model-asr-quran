@@ -27,7 +27,7 @@ async def _pick_daily_item(db: AsyncSession) -> PracticeItem:
         (
             await db.execute(
                 select(PracticeItem)
-                .where(PracticeItem.is_daily.is_(True), PracticeItem.kind == "verse")
+                .where(PracticeItem.is_daily.is_(True))
                 .order_by(PracticeItem.surah_number, PracticeItem.ayah_number_start)
             )
         )

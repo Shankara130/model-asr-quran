@@ -117,11 +117,10 @@ def _verse_items() -> list[PracticeItem]:
                 level=_level_for(word_count),
                 estimated_minutes=max(3, math.ceil(word_count / 3)),
                 reference_audio_url=f"/v1/reference-audio/{surah:03d}{ayah:03d}",
+                reference_audio_key=f"{surah:03d}{ayah:03d}",
+                reciter="Syaikh Al-Husary",
                 is_daily=(ayah == 1),
                 tags=["juz30" if is_juz30 else "juz1"] + (["daily"] if ayah == 1 else []),
-                kind="verse",
-                letter_index=None,
-                target_phoneme=None,
             )
         )
     return items
@@ -134,13 +133,13 @@ def _letter_items() -> list[PracticeItem]:
             PracticeItem(
                 id=f"letter_{test['index']}",
                 surah_name="Uji Huruf",
-                surah_number=0,
+                surah_number=1,
                 ayah_label=f"#{test['index'] + 1}",
-                ayah_number_start=0,
-                ayah_number_end=0,
-                arabic_name="",
+                ayah_number_start=1,
+                ayah_number_end=1,
+                arabic_name="Uji Huruf",
                 arabic_text=test["display"],
-                translation=None,
+                translation="",
                 latin_hint=test.get("latin_hint"),
                 focus=f"Huruf {test['letter']}",
                 level="beginner",
@@ -148,9 +147,6 @@ def _letter_items() -> list[PracticeItem]:
                 reference_audio_url="",
                 is_daily=False,
                 tags=["letters"],
-                kind="letter",
-                letter_index=test["index"],
-                target_phoneme=test["target_phoneme"],
             )
         )
     return items

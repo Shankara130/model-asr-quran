@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.errors import ApiError
 from api.core.ids import new_id, new_result_id
-from api.db import SessionLocal
+from api.db import SessionLocal, is_sqlite
 from api.db.models import (
     AudioUpload,
     AyahHighlight,
@@ -30,11 +30,13 @@ from api.ws.events import (
 )
 from api.ws.hub import hub
 from web.services.evaluation_service import evaluate_prediction
+from web.services.letter_test_service import LETTER_TESTS
 
 log = logging.getLogger("api.eval")
 
 # Serialize CPU-heavy ASR on M1 8GB (avoid OOM / model reentry).
 _semaphore = asyncio.Semaphore(1)
+_LETTER_TARGETS = {f"letter_{test['index']}": test["target_phoneme"] for test in LETTER_TESTS}
 
 
 def _iso() -> str:
@@ -101,7 +103,8 @@ async def create_evaluation(
     heavy work synchronously (WS) or as a background task (REST).
     """
     async with SessionLocal() as db:
-        await db.execute(text("PRAGMA foreign_keys=ON"))
+        if is_sqlite():
+            await db.execute(text("PRAGMA foreign_keys=ON"))
         session = await db.get(PracticeSession, session_id)
         if session is None:
             raise ApiError("session_not_found")
@@ -126,10 +129,10 @@ async def create_evaluation(
 
         item_info = {
             "arabic_text": item.arabic_text,
-            "kind": item.kind,
+            "kind": "letter" if item.id in _LETTER_TARGETS else "verse",
             "surah": item.surah_number,
             "ayah": item.ayah_number_start,
-            "target_phoneme": item.target_phoneme,
+            "target_phoneme": _LETTER_TARGETS.get(item.id),
         }
 
     await hub.broadcast(session_id, "evaluation.queued", evaluation_queued(1))
@@ -174,14 +177,15 @@ async def run_evaluation(
             return
 
     async with SessionLocal() as db:
-        await db.execute(text("PRAGMA foreign_keys=ON"))
+        if is_sqlite():
+            await db.execute(text("PRAGMA foreign_keys=ON"))
         result = await db.get(EvaluationResult, result_id)
         result.match_score = mapped["match_score"]
         result.confidence_level = mapped["confidence_level"]
         result.summary = mapped["summary"]
         result.recommendation = mapped["recommendation"]
-        result.prediction = prediction
         result.status = "completed"
+        result.completed_at = _iso()
 
         for h in mapped["highlights"]:
             db.add(
@@ -219,7 +223,8 @@ async def run_evaluation(
 
 async def _fail(session_id: str, result_id: str, code: str, message: str, retryable: bool) -> None:
     async with SessionLocal() as db:
-        await db.execute(text("PRAGMA foreign_keys=ON"))
+        if is_sqlite():
+            await db.execute(text("PRAGMA foreign_keys=ON"))
         result = await db.get(EvaluationResult, result_id)
         if result is not None:
             result.status = "failed"

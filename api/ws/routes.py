@@ -11,6 +11,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
 from api.core.errors import ApiError
+from api.core.ids import new_id
 from api.db import SessionLocal
 from api.db.models import AudioChunk, AudioUpload, EvaluationResult, PracticeSession
 from api.security.tokens import verify_realtime_token
@@ -151,7 +152,7 @@ async def _handle_ws_audio_chunk(session_id: str, payload: dict[str, Any]) -> No
         upload_store.write_part(upload.upload_id, index, data)
         db.add(
             AudioChunk(
-                id=f"chunk_{index}_{upload.id[:8]}",
+                id=new_id("chunk"),
                 audio_upload_id=upload.id,
                 chunk_index=index,
                 start_ms=int(payload.get("startMs", 0)),

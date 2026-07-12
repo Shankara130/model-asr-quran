@@ -57,13 +57,16 @@ async def create_session(
         raise ApiError("practice_not_found")
 
     now = datetime.now(timezone.utc)
+    device = body.device
     session = PracticeSession(
         id=new_session_id(),
         user_id=principal.user_id,
         practice_item_id=item.id,
         status="started",
         client_session_id=body.client_session_id,
-        device=body.device.model_dump(by_alias=True) if body.device else None,
+        device_platform=device.platform if device else None,
+        device_model=device.model if device else None,
+        app_version=device.app_version if device else None,
         started_at=_iso(now),
     )
     db.add(session)

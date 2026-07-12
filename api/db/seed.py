@@ -5,6 +5,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.core.ids import new_user_id
 from api.db.models import User, UserPreference
 from api.settings import settings
 
@@ -19,7 +20,7 @@ async def seed_dev_user(session: AsyncSession) -> str:
         return existing.id
 
     user = User(
-        id="user_dev",
+        id=new_user_id(),
         name=settings.dev_user_name,
         email=settings.dev_user_email,
         learning_level=settings.dev_user_level,
