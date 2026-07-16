@@ -5,9 +5,33 @@ from typing import Any
 
 from quran_asr.tajwid.interpreter import interpret_differences
 
+ARABIC_DIACRITICS = set("َُِّْٰٓ۟")
+
 
 def normalize_phoneme(text: str) -> str:
     return "".join(str(text).split())
+
+
+def is_arabic_diacritic(char: str) -> bool:
+    return char in ARABIC_DIACRITICS
+
+
+def plausible_retry_start(prediction: str, start: int) -> bool:
+    if start <= 0 or start >= len(prediction):
+        return True
+
+    current = prediction[start]
+    previous = prediction[start - 1]
+    next_char = prediction[start + 1] if start + 1 < len(prediction) else ""
+
+    if is_arabic_diacritic(current):
+        return False
+
+    return not (
+        is_arabic_diacritic(previous)
+        and next_char
+        and not is_arabic_diacritic(next_char)
+    )
 
 
 def levenshtein_alignment(
@@ -250,6 +274,109 @@ def skipped_prediction_parts(prediction: str, selected_segments: list[str]) -> l
     ]
 
 
+def selected_segment_positions(
+    prediction: str,
+    selected_segments: list[str],
+) -> list[tuple[int, int] | None]:
+    positions: list[tuple[int, int] | None] = []
+    cursor = 0
+
+    for segment in selected_segments:
+        if not segment:
+            positions.append(None)
+            continue
+
+        start = prediction.find(segment, cursor)
+        if start == -1:
+            positions.append(None)
+            continue
+
+        end = start + len(segment)
+        positions.append((start, end))
+        cursor = end
+
+    return positions
+
+
+def prefer_later_retry_segments(
+    target_words: list[str],
+    prediction: str,
+    selected_segments: list[str],
+) -> list[str]:
+    positions = selected_segment_positions(
+        prediction,
+        selected_segments,
+    )
+    improved = list(selected_segments)
+
+    for index, target_word in enumerate(target_words):
+        current = improved[index] if index < len(improved) else ""
+        current_position = positions[index] if index < len(positions) else None
+        if not current or current_position is None:
+            continue
+
+        current_distance = edit_distance(
+            target_word,
+            current,
+        )
+        if current_distance == 0:
+            continue
+
+        current_start, current_end = current_position
+        next_start = len(prediction)
+        for later_position in positions[index + 1 :]:
+            if later_position is not None:
+                next_start = later_position[0]
+                break
+
+        expected_length = len(target_word)
+        minimum_length = max(
+            1,
+            expected_length - 4,
+        )
+        maximum_length = min(
+            len(prediction),
+            expected_length + 8,
+        )
+        best_candidate: str | None = None
+        best_score: tuple[int, int, int] | None = None
+
+        for start in range(current_end, next_start):
+            if not plausible_retry_start(
+                prediction,
+                start,
+            ):
+                continue
+
+            last_end = min(
+                len(prediction),
+                start + maximum_length,
+                next_start,
+            )
+            for end in range(start + minimum_length, last_end + 1):
+                candidate = prediction[start:end]
+                distance = edit_distance(
+                    target_word,
+                    candidate,
+                )
+                if distance > current_distance + 1:
+                    continue
+
+                score = (
+                    abs(len(candidate) - expected_length),
+                    distance,
+                    -start,
+                )
+                if best_score is None or score < best_score:
+                    best_score = score
+                    best_candidate = candidate
+
+        if best_candidate is not None:
+            improved[index] = best_candidate
+
+    return improved
+
+
 def split_prediction_by_words(
     target_words: list[str],
     prediction: str,
@@ -365,7 +492,11 @@ def split_prediction_by_words(
     while len(result) < len(target_words):
         result.append("")
 
-    return result
+    return prefer_later_retry_segments(
+        target_words,
+        prediction,
+        result,
+    )
 
 
 def build_word_results(

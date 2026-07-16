@@ -78,3 +78,25 @@ def test_short_prefix_is_not_dropped_when_middle_phrase_repeats() -> None:
             ),
         }
     ]
+
+
+def test_later_middle_word_retry_can_replace_closer_old_attempt() -> None:
+    target = "وَءِذَ لكَوَااكِبُ ںںںتَثَرَت"
+    prediction = "وَءِذَلكَوَااتِبُںںںتَثَرَتقَوَااكِبُںںںتَفَرَت"
+
+    result = evaluate_prediction(target, prediction)
+
+    assert result["word_results"][1]["detected"] == "قَوَااكِبُ"
+    assert result["word_results"][1]["detected"] != "لكَوَااتِبُ"
+    assert result["word_results"][2]["detected"] == "ںںںتَفَرَت"
+    assert result["self_corrections"] == [
+        {
+            "type": "inline_superseded",
+            "detected": "لكَوَااتِبُںںںتَثَرَت",
+            "selected": "وَءِذَقَوَااكِبُںںںتَفَرَت",
+            "note": (
+                "Bagian pengulangan awal diabaikan karena bacaan setelahnya "
+                "lebih cocok dengan target."
+            ),
+        }
+    ]
