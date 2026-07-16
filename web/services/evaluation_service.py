@@ -199,7 +199,7 @@ def select_repeat_aware_prediction(
                 best_start = start
                 best_candidate = candidate
 
-    if best_start == 0 and len(best_candidate) == len(prediction_clean):
+    if best_start == 0:
         return prediction_clean, []
 
     discarded_prefix = prediction_clean[:best_start]
@@ -213,6 +213,33 @@ def select_repeat_aware_prediction(
             "selected": best_candidate,
             "note": "Bacaan awal diabaikan karena ada pengulangan yang lebih cocok.",
         }
+    ]
+
+
+def skipped_prediction_parts(prediction: str, selected_segments: list[str]) -> list[str]:
+    skipped: list[str] = []
+    cursor = 0
+
+    for segment in selected_segments:
+        if not segment:
+            continue
+
+        start = prediction.find(segment, cursor)
+        if start == -1:
+            return []
+
+        if start > cursor:
+            skipped.append(prediction[cursor:start])
+
+        cursor = start + len(segment)
+
+    if cursor < len(prediction):
+        skipped.append(prediction[cursor:])
+
+    return [
+        part
+        for part in skipped
+        if part
     ]
 
 
@@ -232,12 +259,12 @@ def split_prediction_by_words(
     def solve(
         word_index: int,
         prediction_index: int,
-    ) -> tuple[int, tuple[str, ...]]:
+    ) -> tuple[float, tuple[str, ...]]:
         if word_index == word_count:
             remaining = prediction[prediction_index:]
 
             return (
-                len(remaining),
+                float(len(remaining)),
                 tuple(),
             )
 
@@ -257,9 +284,9 @@ def split_prediction_by_words(
             expected_length - 4,
         )
 
-        maximum_length = expected_length + 5
+        maximum_length = expected_length + 8
 
-        best_cost: int | None = None
+        best_cost: float | None = None
         best_segments: tuple[str, ...] = tuple()
 
         for segment_length in range(
@@ -286,6 +313,8 @@ def split_prediction_by_words(
                 word_index + 1,
                 end_index,
             )
+            if len(next_segments) != remaining_words:
+                continue
 
             total_cost = local_cost + next_cost
 
@@ -299,15 +328,25 @@ def split_prediction_by_words(
                     *next_segments,
                 )
 
-        if best_cost is None:
-            segment = prediction[prediction_index:]
+        if prediction_index < maximum_end:
+            next_cost, next_segments = solve(
+                word_index,
+                prediction_index + 1,
+            )
+            if len(next_segments) == word_count - word_index:
+                total_cost = 0.5 + next_cost
 
+                if (
+                    best_cost is None
+                    or total_cost < best_cost
+                ):
+                    best_cost = total_cost
+                    best_segments = next_segments
+
+        if best_cost is None:
             return (
-                edit_distance(
-                    target_word,
-                    segment,
-                ),
-                (segment,),
+                float("inf"),
+                tuple(),
             )
 
         return best_cost, best_segments
@@ -403,6 +442,42 @@ def evaluate_prediction(
         target_clean,
         prediction_clean,
     )
+
+    target_words = [
+        normalize_phoneme(word)
+        for word in target_phoneme.split()
+        if normalize_phoneme(word)
+    ]
+    detected_words = split_prediction_by_words(
+        target_words,
+        prediction_clean,
+    )
+    corrected_prediction = "".join(detected_words)
+
+    if (
+        corrected_prediction
+        and corrected_prediction != prediction_clean
+        and edit_distance(target_clean, corrected_prediction)
+        < edit_distance(target_clean, prediction_clean)
+    ):
+        skipped_parts = skipped_prediction_parts(
+            prediction_clean,
+            detected_words,
+        )
+        if skipped_parts:
+            self_corrections.extend(
+                {
+                    "type": "inline_superseded",
+                    "detected": part,
+                    "selected": corrected_prediction,
+                    "note": (
+                        "Bagian pengulangan awal diabaikan karena bacaan "
+                        "setelahnya lebih cocok dengan target."
+                    ),
+                }
+                for part in skipped_parts
+            )
+        prediction_clean = corrected_prediction
 
     edit_count, operations = levenshtein_alignment(
         target_clean,
