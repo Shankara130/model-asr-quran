@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.core.errors import ApiError
 from api.db import get_db
-from api.db.models import AyahHighlight, EvaluationResult, LetterInsight, PracticeSession
+from api.db.models import (
+    AyahHighlight,
+    EvaluationResult,
+    LetterInsight,
+    PracticeSession,
+    PracticeSessionEvent,
+)
 from api.schemas.evaluate import (
     EvaluateEvaluation,
     EvaluateRequest,
@@ -17,6 +23,7 @@ from api.schemas.evaluate import (
     EvaluationResultOut,
     EvaluationResultResponse,
     LetterInsightOut,
+    SelfCorrectionOut,
 )
 from api.security import CurrentUser
 from api.security.deps import require_auth, require_session_owner
@@ -130,18 +137,62 @@ async def get_result(
             )
         ).scalars()
     ]
+    session_results = list(
+        (
+            await db.execute(
+                select(EvaluationResult)
+                .where(EvaluationResult.session_id == result.session_id)
+                .order_by(EvaluationResult.created_at, EvaluationResult.id)
+            )
+        ).scalars()
+    )
+    result_ids = [row.id for row in session_results]
+    attempt_number = result_ids.index(result.id) + 1 if result.id in result_ids else 1
+    is_latest = bool(result_ids and result.id == result_ids[-1])
+
+    correction_events = list(
+        (
+            await db.execute(
+                select(PracticeSessionEvent)
+                .where(
+                    PracticeSessionEvent.session_id == result.session_id,
+                    PracticeSessionEvent.event_type == "evaluation.self_corrections",
+                )
+                .order_by(PracticeSessionEvent.created_at.desc())
+            )
+        ).scalars()
+    )
+    correction_event = next(
+        (event for event in correction_events if event.payload.get("result_id") == result.id),
+        None,
+    )
+    self_corrections = []
+    if correction_event is not None:
+        self_corrections = [
+            SelfCorrectionOut(
+                type=item.get("type", ""),
+                detected=item.get("detected", ""),
+                selected=item.get("selected", ""),
+                note=item.get("note", ""),
+            )
+            for item in correction_event.payload.get("self_corrections", [])
+            if isinstance(item, dict)
+        ]
 
     return EvaluationResultResponse(
         result=EvaluationResultOut(
             result_id=result.id,
             session_id=result.session_id,
             practice_item_id=result.practice_item_id,
+            attempt_number=attempt_number,
+            is_latest=is_latest,
             match_score=result.match_score,
             confidence_level=result.confidence_level,
             summary=result.summary,
             recommendation=result.recommendation,
             highlights=highlights,
             letter_insights=letter_insights,
+            self_corrections=self_corrections,
             created_at=result.created_at,
             status=result.status,
         )

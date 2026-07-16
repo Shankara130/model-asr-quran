@@ -18,6 +18,7 @@ from api.db.models import (
     LetterInsight,
     PracticeItem,
     PracticeSession,
+    PracticeSessionEvent,
 )
 from api.services import asr_provider, audio_codec, letter_mastery, quran_provider, result_mapper
 from api.services.asr_provider import ModelUnavailable
@@ -119,6 +120,7 @@ async def create_evaluation(
             id=new_result_id(),
             session_id=session.id,
             practice_item_id=item.id,
+            audio_upload_id=upload.id,
             status="queued",
         )
         db.add(result)
@@ -207,6 +209,19 @@ async def run_evaluation(
                     letter=li["letter"],
                     mastery_score=li["mastery_score"],
                     mistake_count=li["mistake_count"],
+                )
+            )
+        if mapped.get("self_corrections"):
+            db.add(
+                PracticeSessionEvent(
+                    id=new_id("ev"),
+                    session_id=session_id,
+                    event_id=f"evaluation-self-corrections-{result_id}",
+                    event_type="evaluation.self_corrections",
+                    payload={
+                        "result_id": result_id,
+                        "self_corrections": mapped["self_corrections"],
+                    },
                 )
             )
         await letter_mastery.update_for_result(db, user_id, mapped["letter_insights"])

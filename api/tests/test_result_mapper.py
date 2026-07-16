@@ -3,7 +3,7 @@ from __future__ import annotations
 from api.services import result_mapper
 
 
-def _raw(similarity, exact, differences, word_results=None):
+def _raw(similarity, exact, differences, word_results=None, self_corrections=None):
     return {
         "similarity": similarity,
         "exact_match": exact,
@@ -11,6 +11,7 @@ def _raw(similarity, exact, differences, word_results=None):
         "tajwid_feedback": [],
         "word_results": word_results or [],
         "prediction_clean": "p",
+        "self_corrections": self_corrections or [],
     }
 
 
@@ -21,6 +22,22 @@ def test_high_confidence_mapping():
     assert mapped["summary"]
     # highlights follow the arabic segments; absent word_results default to "read"
     assert [h["status"] for h in mapped["highlights"]] == ["read", "read"]
+
+
+def test_self_corrections_passthrough():
+    correction = {
+        "type": "prefix_superseded",
+        "detected": "axc",
+        "selected": "abc",
+        "note": "Bacaan awal diabaikan karena ada pengulangan yang lebih cocok.",
+    }
+
+    mapped = result_mapper.map_result(
+        _raw(92.0, False, [], self_corrections=[correction]),
+        {"arabic_text": "ا"},
+    )
+
+    assert mapped["self_corrections"] == [correction]
 
 
 def test_low_confidence_with_letter_aggregation():

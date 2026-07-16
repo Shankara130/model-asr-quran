@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from quran_asr.tajwid.interpreter import interpret_differences
@@ -151,6 +151,71 @@ def edit_distance(reference: str, hypothesis: str) -> int:
     return distance
 
 
+def select_repeat_aware_prediction(
+    target_clean: str,
+    prediction_clean: str,
+) -> tuple[str, list[dict[str, Any]]]:
+    if (
+        not target_clean
+        or not prediction_clean
+        or len(prediction_clean) <= len(target_clean) + 1
+    ):
+        return prediction_clean, []
+
+    target_length = len(target_clean)
+    slack = min(
+        6,
+        max(2, target_length // 3),
+    )
+    minimum_length = max(
+        1,
+        target_length - slack,
+    )
+    maximum_length = min(
+        len(prediction_clean),
+        target_length + slack,
+    )
+
+    best_score: tuple[int, int, int] | None = None
+    best_start = 0
+    best_candidate = prediction_clean
+
+    for start in range(len(prediction_clean)):
+        last_end = min(
+            len(prediction_clean),
+            start + maximum_length,
+        )
+        for end in range(start + minimum_length, last_end + 1):
+            candidate = prediction_clean[start:end]
+            distance = edit_distance(target_clean, candidate)
+            score = (
+                distance,
+                abs(len(candidate) - target_length),
+                -start,
+            )
+
+            if best_score is None or score < best_score:
+                best_score = score
+                best_start = start
+                best_candidate = candidate
+
+    if best_start == 0 and len(best_candidate) == len(prediction_clean):
+        return prediction_clean, []
+
+    discarded_prefix = prediction_clean[:best_start]
+    if not discarded_prefix:
+        return best_candidate, []
+
+    return best_candidate, [
+        {
+            "type": "prefix_superseded",
+            "detected": discarded_prefix,
+            "selected": best_candidate,
+            "note": "Bacaan awal diabaikan karena ada pengulangan yang lebih cocok.",
+        }
+    ]
+
+
 def split_prediction_by_words(
     target_words: list[str],
     prediction: str,
@@ -163,7 +228,7 @@ def split_prediction_by_words(
     word_count = len(target_words)
     prediction_length = len(prediction)
 
-    @lru_cache(maxsize=None)
+    @cache
     def solve(
         word_index: int,
         prediction_index: int,
@@ -334,6 +399,11 @@ def evaluate_prediction(
         prediction
     )
 
+    prediction_clean, self_corrections = select_repeat_aware_prediction(
+        target_clean,
+        prediction_clean,
+    )
+
     edit_count, operations = levenshtein_alignment(
         target_clean,
         prediction_clean,
@@ -356,12 +426,13 @@ def evaluate_prediction(
 
     word_results = build_word_results(
         target_phoneme,
-        prediction,
+        prediction_clean,
     )
 
     return {
         "target_clean": target_clean,
         "prediction_clean": prediction_clean,
+        "self_corrections": self_corrections,
         "edit_count": edit_count,
         "cer": round(cer, 6),
         "similarity": round(similarity, 2),

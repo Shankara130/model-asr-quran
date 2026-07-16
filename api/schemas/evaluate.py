@@ -38,10 +38,19 @@ class LetterInsightOut(CamelModel):
     mistake_count: int = Field(description="Number of mistakes attributed to this letter.")
 
 
+class SelfCorrectionOut(CamelModel):
+    type: str = Field(description="Self-correction event type.")
+    detected: str = Field(description="Superseded detected phoneme segment.")
+    selected: str = Field(description="Phoneme segment selected for final evaluation.")
+    note: str = Field(description="Localized note explaining the correction handling.")
+
+
 class EvaluationResultOut(CamelModel):
     result_id: str = Field(description="Evaluation result id.")
     session_id: str = Field(description="Session id.")
     practice_item_id: str = Field(description="Practice item id.")
+    attempt_number: int = Field(default=1, description="1-based evaluation attempt number.")
+    is_latest: bool = Field(default=True, description="Whether this is the latest session result.")
     match_score: int = Field(description="0–100 match score (rounded similarity).")
     confidence_level: str = Field(description="low | medium | high.")
     summary: str = Field(description="Localized initial-assessment summary.")
@@ -49,6 +58,10 @@ class EvaluationResultOut(CamelModel):
     highlights: list[EvaluationHighlightOut] = Field(description="Per-word highlight statuses.")
     letter_insights: list[LetterInsightOut] = Field(
         description="Per-letter mistakes for this result."
+    )
+    self_corrections: list[SelfCorrectionOut] = Field(
+        default_factory=list,
+        description="Self-retry corrections detected inside the evaluated audio.",
     )
     created_at: str = Field(description="ISO-8601 UTC creation timestamp.")
     status: str = Field(

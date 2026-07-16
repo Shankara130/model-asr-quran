@@ -139,4 +139,5 @@ def map_result(raw: dict, item_info: dict[str, Any]) -> dict[str, Any]:
         "highlights": highlights,
         "letter_insights": letter_insights,
         "prediction": raw.get("prediction_clean", ""),
+        "self_corrections": raw.get("self_corrections") or [],
     }
