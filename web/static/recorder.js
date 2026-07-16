@@ -478,7 +478,7 @@ socket.on("phoneme_final", (data) => {
 
     resultTarget.textContent = readablePhoneme(data.target_phoneme) || "-";
     finalPhoneme.textContent =
-        readablePhoneme(data.prediction) ||
+        readablePhoneme(data.prediction_clean || data.prediction) ||
         "(tidak ada bunyi terdeteksi)";
 
     renderWordResults(

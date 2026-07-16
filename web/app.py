@@ -34,7 +34,6 @@ from web.services.storage_service import (
     JSONLStorage,
 )
 
-
 validate_required_files()
 
 app = Flask(__name__)
@@ -386,9 +385,10 @@ def handle_recording_stopped():
         "target_phoneme": (
             state["target_phoneme"]
         ),
-        "prediction": final_text,
+        "raw_prediction": final_text,
         **evaluation,
     }
+    result_payload["prediction"] = result_payload["prediction_clean"]
 
     storage.append(
         RESULTS_PATH,
@@ -486,6 +486,7 @@ def handle_submit_feedback(
             result["target_phoneme"]
         ),
         "prediction": result["prediction"],
+        "raw_prediction": result.get("raw_prediction", result["prediction"]),
         "similarity": (
             result["similarity"]
         ),
