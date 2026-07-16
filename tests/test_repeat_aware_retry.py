@@ -51,3 +51,30 @@ def test_inline_self_retry_uses_newer_phrase_attempt() -> None:
     assert result["word_results"][3]["similarity"] > 75
     assert result["self_corrections"][-1]["type"] == "inline_superseded"
     assert result["self_corrections"][-1]["detected"] == "جَننننَتِلوَح"
+
+
+def test_short_prefix_is_not_dropped_when_middle_phrase_repeats() -> None:
+    target = "وَقَااتِلُو فِي سَبِيلِ للَااهِ وَعلَمُو ءَننننَ للَااهَ سَمِيعُن عَلِيم"
+    prediction = (
+        "وَقَااتِلُوفِيسَبِيلِللَااهِوَعلَمُو"
+        "وَعلَمُوحَننننَللَااهَسَمِيعُنعَلِيم"
+    )
+
+    result = evaluate_prediction(target, prediction)
+
+    assert result["similarity"] > 95
+    assert result["prediction_clean"].startswith("وَقَااتِلُو")
+    assert result["word_results"][0]["detected"] == "وَقَااتِلُو"
+    assert result["word_results"][0]["similarity"] == 100.0
+    assert result["word_results"][5]["detected"] == "حَننننَ"
+    assert result["self_corrections"] == [
+        {
+            "type": "inline_superseded",
+            "detected": "وَعلَمُو",
+            "selected": "وَقَااتِلُوفِيسَبِيلِللَااهِوَعلَمُوحَننننَللَااهَسَمِيعُنعَلِيم",
+            "note": (
+                "Bagian pengulangan awal diabaikan karena bacaan setelahnya "
+                "lebih cocok dengan target."
+            ),
+        }
+    ]

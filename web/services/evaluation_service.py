@@ -203,8 +203,15 @@ def select_repeat_aware_prediction(
         return prediction_clean, []
 
     discarded_prefix = prediction_clean[:best_start]
-    if not discarded_prefix:
-        return best_candidate, []
+    minimum_retry_prefix = max(
+        3,
+        target_length // 4,
+    )
+    if (
+        not discarded_prefix
+        or len(discarded_prefix) < minimum_retry_prefix
+    ):
+        return prediction_clean, []
 
     return best_candidate, [
         {
