@@ -108,6 +108,8 @@ def create_app() -> FastAPI:
         Auth-gated and never exposed on a public CDN. Returns `practice_not_found`
         (404) when the file is not present on this host.
         """
+        if len(file_key) != 6 or not file_key.isascii() or not file_key.isdigit():
+            raise ApiError("practice_not_found", "Audio referensi tidak ditemukan.")
         path = REFERENCE_AUDIO_DIR / f"{file_key}.wav"
         if not path.exists():
             raise ApiError("practice_not_found", "Audio referensi tidak ditemukan.")
