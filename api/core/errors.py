@@ -22,6 +22,7 @@ ERROR_STATUS: dict[str, int] = {
     "payload_too_large": 413,
     "audio_unprocessable": 422,
     "rate_limited": 429,
+    "auth_service_unavailable": 503,
     "evaluation_failed": 500,
     "internal_error": 500,
 }
@@ -45,6 +46,9 @@ DEFAULT_MESSAGES: dict[str, str] = {
     "auth_identity_conflict": "Identitas akun bertentangan dengan profil yang sudah ada.",
     "payload_too_large": "Ukuran payload terlalu besar.",
     "rate_limited": "Terlalu banyak permintaan.",
+    "auth_service_unavailable": (
+        "Layanan autentikasi sedang tidak dapat dijangkau. Periksa koneksi lalu coba lagi."
+    ),
     "evaluation_failed": "Evaluasi gagal.",
     "internal_error": "Terjadi kesalahan internal.",
 }

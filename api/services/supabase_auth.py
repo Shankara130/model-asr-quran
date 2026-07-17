@@ -57,17 +57,23 @@ class SupabaseAuthClient:
 
     async def logout(self, access_token: str | None = None) -> None:
         headers = self._headers(access_token, admin=access_token is None)
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(f"{self.base_url}/auth/v1/logout", headers=headers)
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.post(f"{self.base_url}/auth/v1/logout", headers=headers)
+        except (httpx.NetworkError, httpx.TimeoutException) as exc:
+            raise ApiError("auth_service_unavailable") from exc
         if response.status_code not in {200, 204}:
             raise ApiError("auth_refresh_failed")
 
     async def get_user(self, access_token: str) -> dict[str, Any]:
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(
-                f"{self.base_url}/auth/v1/user",
-                headers=self._headers(access_token),
-            )
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(
+                    f"{self.base_url}/auth/v1/user",
+                    headers=self._headers(access_token),
+                )
+        except (httpx.NetworkError, httpx.TimeoutException) as exc:
+            raise ApiError("auth_service_unavailable") from exc
         if response.status_code == 401:
             raise ApiError("auth_token_expired")
         if response.status_code >= 400:
@@ -76,12 +82,15 @@ class SupabaseAuthClient:
         return data.get("user") or data
 
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.post(
-                f"{self.base_url}{path}",
-                headers=self._headers(),
-                json=payload,
-            )
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                response = await client.post(
+                    f"{self.base_url}{path}",
+                    headers=self._headers(),
+                    json=payload,
+                )
+        except (httpx.NetworkError, httpx.TimeoutException) as exc:
+            raise ApiError("auth_service_unavailable") from exc
         if response.status_code == 400 and "already" in response.text.lower():
             raise ApiError("auth_email_exists")
         if response.status_code in {400, 401, 422}:
