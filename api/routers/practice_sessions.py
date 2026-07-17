@@ -67,7 +67,7 @@ async def create_session(
         device_platform=device.platform if device else None,
         device_model=device.model if device else None,
         app_version=device.app_version if device else None,
-        started_at=_iso(now),
+        started_at=now,
     )
     db.add(session)
     await db.commit()
@@ -78,7 +78,7 @@ async def create_session(
             practice_item_id=session.practice_item_id,
             user_id=session.user_id,
             status=session.status,
-            created_at=session.created_at,
+            created_at=_iso(session.created_at),
             expires_at=_iso(now + timedelta(seconds=settings.realtime_token_ttl_seconds)),
         ),
         realtime=RealtimeConfig(
@@ -117,8 +117,8 @@ async def get_session(
             practice_item_id=session.practice_item_id,
             status=session.status,
             audio_url=await _latest_audio_url(db, session.id),
-            created_at=session.created_at,
-            completed_at=session.completed_at,
+            created_at=_iso(session.created_at),
+            completed_at=_iso(session.completed_at) if session.completed_at else None,
         )
     )
 
@@ -134,7 +134,7 @@ async def cancel_session(
     if session.status in {"completed", "cancelled"}:
         raise ApiError("session_invalid_state")
     session.status = "cancelled"
-    session.updated_at = _iso(datetime.now(timezone.utc))
+    session.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return CancelSessionResponse(session=SessionCancelled(id=session.id, status="cancelled"))
 
@@ -202,8 +202,8 @@ async def list_sessions(
             status=s.status,
             match_score=results[s.id].match_score if s.id in results else None,
             confidence_level=results[s.id].confidence_level if s.id in results else None,
-            created_at=s.created_at,
-            completed_at=s.completed_at,
+            created_at=_iso(s.created_at),
+            completed_at=_iso(s.completed_at) if s.completed_at else None,
         )
         for s in page
     ]

@@ -40,8 +40,8 @@ _semaphore = asyncio.Semaphore(1)
 _LETTER_TARGETS = {f"letter_{test['index']}": test["target_phoneme"] for test in LETTER_TESTS}
 
 
-def _iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _audio_path(audio_url: str | None) -> Path | None:
@@ -125,7 +125,7 @@ async def create_evaluation(
         )
         db.add(result)
         session.status = "processing"
-        session.updated_at = _iso()
+        session.updated_at = _now()
         await db.commit()
         result_id = result.id
 
@@ -187,7 +187,7 @@ async def run_evaluation(
         result.summary = mapped["summary"]
         result.recommendation = mapped["recommendation"]
         result.status = "completed"
-        result.completed_at = _iso()
+        result.completed_at = _now()
 
         for h in mapped["highlights"]:
             db.add(
@@ -229,8 +229,8 @@ async def run_evaluation(
         session = await db.get(PracticeSession, session_id)
         if session is not None:
             session.status = "completed"
-            session.completed_at = _iso()
-            session.updated_at = _iso()
+            session.completed_at = _now()
+            session.updated_at = _now()
         await db.commit()
 
     await hub.broadcast(session_id, "evaluation.completed", evaluation_completed(result_id))
@@ -247,7 +247,7 @@ async def _fail(session_id: str, result_id: str, code: str, message: str, retrya
         session = await db.get(PracticeSession, session_id)
         if session is not None and session.status != "cancelled":
             session.status = "failed"
-            session.updated_at = _iso()
+            session.updated_at = _now()
         await db.commit()
     await hub.broadcast(
         session_id, "evaluation.failed", evaluation_failed(code, message, retryable)

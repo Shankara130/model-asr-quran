@@ -46,7 +46,7 @@ async def _pick_daily_item(db: AsyncSession) -> PracticeItem:
 
 
 async def _weekly_snapshot(db: AsyncSession, user_id: str) -> WeeklySnapshot:
-    week_start = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    week_start = datetime.now(timezone.utc) - timedelta(days=7)
     done = (
         await db.scalar(
             select(func.count())

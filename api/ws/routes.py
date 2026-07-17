@@ -27,8 +27,8 @@ from api.ws.hub import hub
 log = logging.getLogger("api.ws")
 
 
-def _iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 async def _set_session_status(session_id: str, status: str) -> None:
@@ -36,7 +36,7 @@ async def _set_session_status(session_id: str, status: str) -> None:
         session = await db.get(PracticeSession, session_id)
         if session is not None:
             session.status = status
-            session.updated_at = _iso()
+            session.updated_at = _now()
             await db.commit()
 
 

@@ -53,7 +53,7 @@ async def _create_refresh_row(session: AsyncSession, user_id: str) -> str:
             id=new_token_id(),
             user_id=user_id,
             token_hash=hash_refresh_token(token),
-            expires_at=_iso(now + timedelta(days=REFRESH_TTL_DAYS)),
+            expires_at=now + timedelta(days=REFRESH_TTL_DAYS),
         )
     )
     await session.flush()
@@ -171,7 +171,7 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)) -> R
     if row is None or row.revoked_at is not None:
         raise ApiError("auth_refresh_failed")
 
-    row.revoked_at = _iso(datetime.now(timezone.utc))
+    row.revoked_at = datetime.now(timezone.utc)
     tokens = await _issue_pair(db, row.user_id)
     return RefreshResponse(
         access_token=tokens.access_token,
@@ -193,6 +193,6 @@ async def logout(body: LogoutRequest, db: AsyncSession = Depends(get_db)) -> Log
     token_hash = hash_refresh_token(body.refresh_token)
     row = await db.scalar(select(AuthRefreshToken).where(AuthRefreshToken.token_hash == token_hash))
     if row is not None and row.revoked_at is None:
-        row.revoked_at = _iso(datetime.now(timezone.utc))
+        row.revoked_at = datetime.now(timezone.utc)
         await db.commit()
     return LogoutResponse(success=True)

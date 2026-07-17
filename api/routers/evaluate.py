@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -193,7 +194,7 @@ async def get_result(
             highlights=highlights,
             letter_insights=letter_insights,
             self_corrections=self_corrections,
-            created_at=result.created_at,
+            created_at=result.created_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             status=result.status,
         )
     )

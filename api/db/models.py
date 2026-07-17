@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import date, datetime, time, timezone
 
-from sqlalchemy import JSON, BigInteger, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Time,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import CHAR, TypeDecorator
@@ -12,8 +21,8 @@ from sqlalchemy.types import CHAR, TypeDecorator
 from api.db import Base
 
 
-def now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class GUID(TypeDecorator):
@@ -81,8 +90,10 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String, default="dev-stub")
     avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
     learning_level: Mapped[str] = mapped_column(String, default="beginner")
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
-    updated_at: Mapped[Any] = mapped_column(String, default=now_iso, onupdate=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     preferences: Mapped[UserPreference | None] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -99,9 +110,9 @@ class AuthRefreshToken(Base):
     token_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
     user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
-    expires_at: Mapped[Any] = mapped_column(String)
-    revoked_at: Mapped[Any | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class UserPreference(Base):
@@ -115,8 +126,10 @@ class UserPreference(Base):
     audio_feedback_enabled: Mapped[bool] = mapped_column(default=True)
     daily_report_frequency: Mapped[str] = mapped_column(String, default="weekly_sunday")
     reminder_enabled: Mapped[bool] = mapped_column(default=False)
-    reminder_time: Mapped[str | None] = mapped_column(String, nullable=True)
-    updated_at: Mapped[Any] = mapped_column(String, default=now_iso, onupdate=now_iso)
+    reminder_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     user: Mapped[User] = relationship(back_populates="preferences")
 
@@ -142,8 +155,10 @@ class PracticeItem(Base):
     reciter: Mapped[str | None] = mapped_column(String, nullable=True)
     is_daily: Mapped[bool] = mapped_column(default=False)
     tags: Mapped[list[str]] = mapped_column(TextArray(), default=list)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
-    updated_at: Mapped[Any] = mapped_column(String, default=now_iso, onupdate=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
 
 class PracticeItemSegment(Base):
@@ -157,7 +172,7 @@ class PracticeItemSegment(Base):
     text: Mapped[str] = mapped_column(String)
     start_char: Mapped[int] = mapped_column(Integer)
     end_char: Mapped[int] = mapped_column(Integer)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class PracticeSession(Base):
@@ -173,11 +188,13 @@ class PracticeSession(Base):
     device_platform: Mapped[str | None] = mapped_column(String, nullable=True)
     device_model: Mapped[str | None] = mapped_column(String, nullable=True)
     app_version: Mapped[str | None] = mapped_column(String, nullable=True)
-    started_at: Mapped[Any] = mapped_column(String, default=now_iso)
-    completed_at: Mapped[Any | None] = mapped_column(String, nullable=True)
-    cancelled_at: Mapped[Any | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
-    updated_at: Mapped[Any] = mapped_column(String, default=now_iso, onupdate=now_iso)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     audio_uploads: Mapped[list[AudioUpload]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
@@ -195,9 +212,9 @@ class PracticeSessionRealtimeToken(Base):
         GUID(), ForeignKey("practice_sessions.id", ondelete="CASCADE"), index=True
     )
     token_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
-    expires_at: Mapped[Any] = mapped_column(String)
-    revoked_at: Mapped[Any | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class AudioUpload(Base):
@@ -217,8 +234,8 @@ class AudioUpload(Base):
     channels: Mapped[int | None] = mapped_column(Integer, nullable=True)
     size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     status: Mapped[str] = mapped_column(String, default="initialized")
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
-    completed_at: Mapped[Any | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     session: Mapped[PracticeSession] = relationship(back_populates="audio_uploads")
     chunks: Mapped[list[AudioChunk]] = relationship(
@@ -239,7 +256,7 @@ class AudioChunk(Base):
     size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     checksum_sha256: Mapped[str | None] = mapped_column(String, nullable=True)
     storage_key: Mapped[str | None] = mapped_column(String, nullable=True)
-    received_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     upload: Mapped[AudioUpload] = relationship(back_populates="chunks")
     __table_args__ = (
@@ -266,9 +283,13 @@ class EvaluationResult(Base):
     error_code: Mapped[str | None] = mapped_column(String, nullable=True)
     model_name: Mapped[str | None] = mapped_column(String, nullable=True)
     model_version: Mapped[str | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso, index=True)
-    updated_at: Mapped[Any] = mapped_column(String, default=now_iso, onupdate=now_iso)
-    completed_at: Mapped[Any | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     session: Mapped[PracticeSession] = relationship(back_populates="evaluation_results")
     highlights: Mapped[list[AyahHighlight]] = relationship(
@@ -291,7 +312,7 @@ class AyahHighlight(Base):
     note: Mapped[str] = mapped_column(String, default="")
     start_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     end_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     result: Mapped[EvaluationResult] = relationship(back_populates="highlights")
 
@@ -306,7 +327,7 @@ class LetterInsight(Base):
     letter: Mapped[str] = mapped_column(String)
     mastery_score: Mapped[int] = mapped_column(Integer, default=0)
     mistake_count: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     result: Mapped[EvaluationResult] = relationship(back_populates="letter_insights")
     __table_args__ = (
@@ -324,8 +345,12 @@ class LetterMastery(Base):
     letter: Mapped[str] = mapped_column(String)
     score: Mapped[int] = mapped_column(Integer, default=0)
     mistake_count: Mapped[int] = mapped_column(Integer, default=0)
-    last_practiced_at: Mapped[Any | None] = mapped_column(String, nullable=True)
-    updated_at: Mapped[Any] = mapped_column(String, default=now_iso, onupdate=now_iso)
+    last_practiced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
 
     __table_args__ = (UniqueConstraint("user_id", "letter", name="uq_user_letter"),)
 
@@ -337,8 +362,8 @@ class WeeklyReport(Base):
     user_id: Mapped[str] = mapped_column(
         GUID(), ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    week_start: Mapped[str] = mapped_column(String)
-    week_end: Mapped[str] = mapped_column(String)
+    week_start: Mapped[date] = mapped_column(Date)
+    week_end: Mapped[date] = mapped_column(Date)
     average_score: Mapped[int] = mapped_column(Integer, default=0)
     practice_count: Mapped[int] = mapped_column(Integer, default=0)
     growth_percent: Mapped[int] = mapped_column(Integer, default=0)
@@ -346,7 +371,7 @@ class WeeklyReport(Base):
     summary: Mapped[str] = mapped_column(String, default="")
     suggestion: Mapped[str] = mapped_column(String, default="")
     trend: Mapped[list[int]] = mapped_column(IntArray(), default=list)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     __table_args__ = (UniqueConstraint("user_id", "week_start", name="uq_user_week"),)
 
@@ -361,7 +386,7 @@ class PracticeSessionEvent(Base):
     event_id: Mapped[str] = mapped_column(String)
     event_type: Mapped[str] = mapped_column(String)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     __table_args__ = (UniqueConstraint("session_id", "event_id", name="uq_session_event"),)
 
@@ -378,4 +403,4 @@ class RequestLog(Base):
     path: Mapped[str] = mapped_column(String)
     status_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_code: Mapped[str | None] = mapped_column(String, nullable=True)
-    created_at: Mapped[Any] = mapped_column(String, default=now_iso)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

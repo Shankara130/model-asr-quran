@@ -10,8 +10,8 @@ from api.core.ids import new_id
 from api.db.models import LetterMastery
 
 
-def _iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 async def update_for_result(
@@ -20,7 +20,7 @@ async def update_for_result(
     """Rolling per-(user, letter) mastery update after a completed evaluation."""
     if not letter_insights:
         return
-    now = _iso()
+    now = _now()
     for li in letter_insights:
         letter = li["letter"]
         new_score = int(li["mastery_score"])

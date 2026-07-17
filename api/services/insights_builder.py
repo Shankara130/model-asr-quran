@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.db.models import EvaluationResult, LetterInsight, LetterMastery, PracticeSession
+from api.db.models import EvaluationResult, LetterInsight, LetterMastery, PracticeSession, utc_now
 from api.schemas.insights import LetterMasteryItem, WeeklyInsight, WeeklyLetterMastery
 
 
@@ -15,14 +15,17 @@ def default_week_start() -> str:
     return monday.strftime("%Y-%m-%d")
 
 
-def _week_bounds(week_start: str) -> tuple[str, str]:
+def _week_bounds(week_start: str) -> tuple[datetime, datetime]:
     start = datetime.strptime(week_start, "%Y-%m-%d").date()
     end = start + timedelta(days=7)
-    return f"{start}T00:00:00Z", f"{end}T00:00:00Z"
+    return (
+        datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc),
+        datetime.combine(end, datetime.min.time(), tzinfo=timezone.utc),
+    )
 
 
 async def _results_in_range(
-    db: AsyncSession, user_id: str, start_iso: str, end_iso: str
+    db: AsyncSession, user_id: str, start_iso: datetime, end_iso: datetime
 ) -> list[EvaluationResult]:
     return list(
         (
@@ -43,9 +46,7 @@ async def _results_in_range(
 
 async def build_weekly(db: AsyncSession, user_id: str, week_start: str) -> WeeklyInsight:
     start_iso, end_iso = _week_bounds(week_start)
-    prev_start = (datetime.strptime(week_start, "%Y-%m-%d") - timedelta(days=7)).strftime(
-        "%Y-%m-%dT00:00:00Z"
-    )
+    prev_start = start_iso - timedelta(days=7)
     prev_end = start_iso
 
     results = await _results_in_range(db, user_id, start_iso, end_iso)
@@ -60,7 +61,7 @@ async def build_weekly(db: AsyncSession, user_id: str, week_start: str) -> Weekl
     # Daily trend for the 7 days of the week.
     by_day: dict[str, list[int]] = {}
     for r in results:
-        by_day.setdefault(r.created_at[:10], []).append(r.match_score)
+        by_day.setdefault(r.created_at.date().isoformat(), []).append(r.match_score)
     start_date = datetime.strptime(week_start, "%Y-%m-%d").date()
     trend = []
     for i in range(7):
@@ -132,7 +133,7 @@ async def _letter_insights_for(db: AsyncSession, result_ids: list[str]) -> list[
                 letter=letter,
                 mastery_score=avg_score,
                 mistake_count=data["mistake_count"],
-                created_at="",
+                created_at=utc_now(),
             )
         )
     out.sort(key=lambda x: (-x.mistake_count, x.letter))
@@ -154,7 +155,11 @@ async def letter_mastery_items(db: AsyncSession, user_id: str) -> list[LetterMas
             letter=r.letter,
             score=r.score,
             mistake_count=r.mistake_count,
-            last_practiced_at=r.last_practiced_at,
+            last_practiced_at=(
+                r.last_practiced_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if r.last_practiced_at
+                else None
+            ),
         )
         for r in rows
     ]

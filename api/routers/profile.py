@@ -69,8 +69,8 @@ async def _profile_summary(db: AsyncSession, user_id: str) -> ProfileSummary:
     streak = 0
     seen: set[str] = set()
     cursor_day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    for iso in dates:
-        day = iso[:10]
+    for created_at in dates:
+        day = created_at.date().isoformat()
         if day in seen:
             continue
         if day == cursor_day:
@@ -116,7 +116,7 @@ def _prefs_from_row(pref: UserPreference) -> Preferences:
         audio_feedback_enabled=bool(pref.audio_feedback_enabled),
         daily_report_frequency=pref.daily_report_frequency,
         reminder_enabled=bool(pref.reminder_enabled),
-        reminder_time=pref.reminder_time,
+        reminder_time=pref.reminder_time.strftime("%H:%M") if pref.reminder_time else None,
     )
 
 
@@ -161,7 +161,7 @@ async def update_profile(
         user.learning_level = body.learning_level
     if body.avatar_url is not None:
         user.avatar_url = body.avatar_url
-    user.updated_at = _iso(datetime.now(timezone.utc))
+    user.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return ProfileIdentityResponse(
         user=ProfileUser(
@@ -195,7 +195,9 @@ async def update_preferences(
     ):
         value = getattr(body, field)
         if value is not None:
+            if field == "reminder_time":
+                value = datetime.strptime(value, "%H:%M").time()
             setattr(pref, field, value)
-    pref.updated_at = _iso(datetime.now(timezone.utc))
+    pref.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return PreferencesResponse(preferences=_prefs_from_row(pref))

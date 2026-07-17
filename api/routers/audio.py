@@ -41,8 +41,8 @@ _MIME_EXT = {
 }
 
 
-def _iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _ext(mime: str, fallback: str = "webm") -> str:
@@ -114,7 +114,7 @@ async def simple_upload(
         channels=channels,
         size_bytes=len(data),
         status="uploaded",
-        completed_at=_iso(),
+        completed_at=_now(),
     )
     db.add(upload)
     await db.commit()
@@ -293,7 +293,7 @@ async def chunk_complete(
     upload.size_bytes = total_bytes
     upload.duration_ms = body.duration_ms
     upload.status = "uploaded"
-    upload.completed_at = _iso()
+    upload.completed_at = _now()
     await db.commit()
 
     upload_store.remove(upload.upload_id)
