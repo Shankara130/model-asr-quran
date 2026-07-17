@@ -16,7 +16,8 @@ rtk proxy .venv/bin/python -m uvicorn api.app:create_app --factory --host 127.0.
 ```
 
 4. Buka `http://127.0.0.1:8010/docs`.
-5. Siapkan `001001.wav` sebagai contoh benar dan salah satu audio mismatch sebagai perbandingan.
+5. Siapkan Husary `001001.wav` atau Minshawy `001001.mp3` sebagai contoh benar dan audio
+   ayat 1:2 terhadap target 1:1 sebagai perbandingan berbeda.
 
 ## Urutan Rekaman
 
@@ -31,7 +32,7 @@ rtk proxy .venv/bin/python -m uvicorn api.app:create_app --factory --host 127.0.
 9. Ambil result final: status completed, skor 93, empat highlight.
 10. Tunjukkan row evaluation di Supabase dan bahwa lokasi rekaman telah dikosongkan.
 11. Restart backend dan ambil result yang sama untuk membuktikan persistence.
-12. Tampilkan perbandingan sampel benar 93.33% dan mismatch 36–47%.
+12. Tampilkan perbandingan sampel benar, lintas qari, dan mismatch 36–47%.
 13. Tampilkan self-retry/pengulangan dari UI tester atau regression evidence.
 14. Tutup dengan keterbatasan model, terutama false negative ayat 1:5.
 
@@ -43,7 +44,8 @@ Model menghasilkan transkripsi fonem awal. Sistem kemudian membandingkannya deng
 
 - Jika Supabase tidak dapat dijangkau, tampilkan evidence yang sudah direkam; jangan mengklaim request live berhasil.
 - Jika inference cold start lambat, mulai backend sebelum merekam dan gunakan health/readiness untuk membuktikan kesiapan.
-- Jangan gunakan Al-Fatihah 1:5 sebagai contoh bacaan benar utama karena hasil referensinya masih 75.68%.
+- Jangan gunakan Husary Al-Fatihah 1:5 sebagai contoh bacaan benar utama karena hasilnya
+  75.68%; Minshawy 1:1 adalah contoh lintas qari yang stabil pada pengujian saat ini.
 - Jangan tampilkan `.env`, access token, service-role key, database URL, atau UUID pengguna.
 - Jelaskan bahwa rekaman pengguna langsung dihapus setelah evaluasi final; hanya hasil yang disimpan.
 

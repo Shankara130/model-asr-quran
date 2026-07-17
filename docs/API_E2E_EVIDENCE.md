@@ -103,8 +103,10 @@ Nyata dan terhubung ke Supabase/penyimpanan/model:
 
 Belum lengkap atau belum dibuktikan untuk video:
 
-- Penyimpanan audio masih filesystem host, belum Supabase Storage.
+- Audio pengguna sengaja hanya berada sementara di filesystem privat dan dihapus setelah
+  evaluasi; Supabase Storage tidak diperlukan oleh kebijakan produk saat ini.
 - WebSocket tersedia tetapi belum diuji dari Flutter pada workspace ini.
-- Retention cleanup audio belum dijalankan sebagai scheduled job.
+- Cleanup orphan dijalankan saat startup; scheduled cleanup tambahan belum diperlukan untuk
+  alur single-process yang diuji.
 - Full SQLite-based API test harness macet pada environment ini; E2E PostgreSQL nyata digunakan sebagai bukti runtime.
 - Source Flutter tidak tersedia di repository ini, sehingga integrasi mobile belum dapat diimplementasikan di sini.

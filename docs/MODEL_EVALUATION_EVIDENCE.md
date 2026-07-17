@@ -7,7 +7,7 @@ Tanggal: 17 Juli 2026
 - Model: `zipformer_p_quran` (`quran_phoneme_zipformer.int8.onnx`).
 - Runtime: `sherpa_onnx`, CPU, greedy search.
 - Audio: WAV, mono PCM 16 kHz setelah decoding.
-- Reciter sampel: Husary Mujawwad.
+- Reciter sampel: Husary Mujawwad dan Minshawy Murattal.
 - Skor: Levenshtein character error rate pada fonem yang dinormalisasi; similarity = `(1 - CER) * 100` dengan batas minimum 0.
 - Fingerprint model: SHA-256 disimpan pada setiap hasil API baru, tetapi nilainya tidak dicantumkan dalam dokumen publik ini.
 
@@ -44,6 +44,34 @@ Ketiga audio berikut sengaja dinilai terhadap target 1:1 untuk membuktikan pemis
 
 Hasil menunjukkan pemisahan yang jelas dari sampel target sesuai yang umumnya berada pada 89–97%.
 
+## Validasi Lintas Qari
+
+Tujuh audio Minshawy Murattal diproses melalui provider ASR, decoder audio, dan evaluator
+yang sama dengan backend produksi. Model dimuat satu kali dan setiap MP3 didekode menjadi
+mono PCM 16 kHz sebelum inference.
+
+| No | Ayat | File | Similarity | CER | Latency |
+|---:|---|---|---:|---:|---:|
+| 11 | 1:1 | `001001.mp3` | 100.00% | 0.000000 | 0.147 s |
+| 12 | 1:2 | `001002.mp3` | 100.00% | 0.000000 | 0.158 s |
+| 13 | 1:3 | `001003.mp3` | 100.00% | 0.000000 | 0.120 s |
+| 14 | 1:4 | `001004.mp3` | 100.00% | 0.000000 | 0.115 s |
+| 15 | 1:5 | `001005.mp3` | 94.59% | 0.054054 | 0.173 s |
+| 16 | 1:6 | `001006.mp3` | 96.30% | 0.037037 | 0.153 s |
+| 17 | 1:7 | `001007.mp3` | 98.67% | 0.013333 | 0.399 s |
+
+Hasil Minshawy memperlihatkan bahwa model dapat mengenali qari kedua pada sampel ini.
+Perbedaan besar ayat 1:5 antara Husary (75.68%) dan Minshawy (94.59%) menunjukkan bahwa
+kalibrasi threshold harus menggunakan lebih banyak qari dan kondisi rekaman.
+
+## Interpretasi Threshold Sementara
+
+- Sampel sesuai yang diuji berada pada 75.68-100.00%.
+- Sampel sengaja tidak sesuai berada pada 36.67-46.67%.
+- Rentang di antara kelompok tersebut belum cukup terkalibrasi untuk keputusan universal.
+- Untuk video, gunakan Minshawy 1:1 atau Husary 1:1 sebagai contoh sesuai dan mismatch
+  1:2 terhadap target 1:1 sebagai contoh berbeda.
+
 ## Self-Retry dan Pengulangan
 
 Regression suite `tests/test_repeat_aware_retry.py` lulus bersama test backend terfokus. Kasus yang dicakup meliputi:
@@ -55,10 +83,12 @@ Regression suite `tests/test_repeat_aware_retry.py` lulus bersama test backend t
 
 ## Keterbatasan
 
-- Tujuh sampel benar berasal dari satu qari dan satu surah; ini bukti operasional, bukan evaluasi generalisasi populasi.
+- Empat belas sampel benar berasal dari dua qari dan satu surah; ini bukti operasional,
+  bukan evaluasi generalisasi populasi.
 - Ayat 1:5 menghasilkan 75.68% pada audio referensi yang benar, menunjukkan kemungkinan false negative pada pengulangan fonem akhir.
 - Similarity/CER mengukur kemiripan urutan fonem dan belum merupakan penilaian tajwid klinis atau fatwa benar-salah.
 - Noise, mikrofon, tempo, gema, dan variasi qari dapat memengaruhi prediction.
+- Suara perempuan, anak, perangkat berbeda, dan noise nyata belum tersedia dalam dataset
+  evidence ini dan masih memerlukan pengujian anggota tim.
 - Mismatch ayat membuktikan diskriminasi bacaan berbeda, tetapi bukan pengganti rekaman kesalahan makhraj yang terkontrol.
 - Latency di atas hanya inference model dalam proses yang sudah memuat model; tidak termasuk upload, jaringan, atau cold start.
-
