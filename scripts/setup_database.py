@@ -135,10 +135,28 @@ async def verify_database(engine: AsyncEngine) -> dict[str, int]:
             if grant_count:
                 raise RuntimeError("anon/authenticated still have application table privileges")
 
+            function_row = (
+                await conn.execute(
+                    text(
+                        "select p.prosecdef, "
+                        "has_function_privilege('anon', p.oid, 'execute'), "
+                        "has_function_privilege('authenticated', p.oid, 'execute') "
+                        "from pg_catalog.pg_proc p "
+                        "join pg_catalog.pg_namespace n on n.oid = p.pronamespace "
+                        "where n.nspname = 'public' and p.proname = 'set_updated_at'"
+                    )
+                )
+            ).one_or_none()
+            if function_row is None:
+                raise RuntimeError("set_updated_at trigger function is missing")
+            if any(function_row):
+                raise RuntimeError("set_updated_at has unsafe definer or client execute privileges")
+
     return {
         "tables": len(EXPECTED_TABLES),
         "rls_enabled": len(EXPECTED_TABLES),
         "client_grants": grant_count,
+        "unsafe_functions": 0,
     }
 
 
@@ -159,7 +177,8 @@ async def run(mode: str) -> None:
             print(
                 "verify=ok "
                 f"tables={result['tables']} rls={result['rls_enabled']} "
-                f"client_grants={result['client_grants']}"
+                f"client_grants={result['client_grants']} "
+                f"unsafe_functions={result['unsafe_functions']}"
             )
     finally:
         await engine.dispose()
