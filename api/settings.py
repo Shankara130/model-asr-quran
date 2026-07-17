@@ -57,7 +57,10 @@ class Settings(BaseSettings):
         "audio/webm",
         "audio/mp4",
         "audio/m4a",
+        "audio/x-m4a",
         "audio/wav",
+        "audio/x-wav",
+        "audio/mpeg",
     )
 
     # Dev user.
@@ -66,6 +69,8 @@ class Settings(BaseSettings):
     dev_user_level: str = "beginner"
 
     cors_origins: tuple[str, ...] = ("*",)
+    startup_timeout_seconds: int = 30
+    readiness_timeout_seconds: int = 10
 
 
 settings = Settings()

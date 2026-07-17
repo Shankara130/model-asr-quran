@@ -158,6 +158,7 @@ async def run_evaluation(
     async with _semaphore:
         try:
             mapped, prediction = await asyncio.to_thread(_run_blocking, item_info, audio_path)
+            model_name, model_version = await asyncio.to_thread(asr_provider.model_metadata)
         except ModelUnavailable as exc:
             await _fail(session_id, result_id, "audio_unprocessable", exc.message, retryable=False)
             return
@@ -186,6 +187,8 @@ async def run_evaluation(
         result.confidence_level = mapped["confidence_level"]
         result.summary = mapped["summary"]
         result.recommendation = mapped["recommendation"]
+        result.model_name = model_name
+        result.model_version = model_version
         result.status = "completed"
         result.completed_at = _now()
 

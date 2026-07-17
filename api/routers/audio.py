@@ -91,12 +91,22 @@ async def simple_upload(
 ) -> SimpleUploadResponse:
     """One-shot multipart upload. Prefer chunked upload for realtime/progressive recording."""
     data = await file.read()
+    effective_mime = (mime_type or file.content_type or "").lower()
+    if effective_mime not in settings.accepted_mime_types:
+        raise ApiError(
+            "audio_upload_failed",
+            "Format audio tidak didukung.",
+            details={"acceptedMimeTypes": list(settings.accepted_mime_types)},
+        )
     if len(data) > settings.max_simple_upload_bytes:
         raise ApiError("payload_too_large")
     if not data:
         raise ApiError("audio_upload_failed", details={"reason": "empty file"})
+    max_duration_ms = settings.max_audio_duration_seconds * 1000
+    if duration_ms is not None and not 0 < duration_ms <= max_duration_ms:
+        raise ApiError("audio_upload_failed", details={"reason": "invalid duration"})
 
-    ext = _ext(codec or mime_type or file.content_type or "audio/m4a")
+    ext = _ext(effective_mime)
     audio_id = new_audio_id()
     audio_url = f"private://audio/{session.id}/{audio_id}.{ext}"
     dest = settings.audio_dir / session.id / f"{audio_id}.{ext}"
@@ -108,7 +118,7 @@ async def simple_upload(
         session_id=session.id,
         upload_id=audio_id,
         audio_url=audio_url,
-        mime_type=mime_type or file.content_type or "audio/m4a",
+        mime_type=effective_mime,
         duration_ms=duration_ms,
         sample_rate=sample_rate,
         channels=channels,

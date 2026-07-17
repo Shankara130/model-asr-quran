@@ -51,10 +51,18 @@ class EvaluationResultOut(CamelModel):
     practice_item_id: str = Field(description="Practice item id.")
     attempt_number: int = Field(default=1, description="1-based evaluation attempt number.")
     is_latest: bool = Field(default=True, description="Whether this is the latest session result.")
-    match_score: int = Field(description="0–100 match score (rounded similarity).")
-    confidence_level: str = Field(description="low | medium | high.")
-    summary: str = Field(description="Localized initial-assessment summary.")
-    recommendation: str = Field(description="Localized practice recommendation.")
+    match_score: int | None = Field(
+        default=None, description="0–100 match score; null while queued/processing."
+    )
+    confidence_level: str | None = Field(
+        default=None, description="low | medium | high; null while queued/processing."
+    )
+    summary: str | None = Field(
+        default=None, description="Initial-assessment summary; null before completion."
+    )
+    recommendation: str | None = Field(
+        default=None, description="Practice recommendation; null before completion."
+    )
     highlights: list[EvaluationHighlightOut] = Field(description="Per-word highlight statuses.")
     letter_insights: list[LetterInsightOut] = Field(
         description="Per-letter mistakes for this result."

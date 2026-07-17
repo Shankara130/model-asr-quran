@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api import __version__
@@ -27,6 +28,7 @@ from api.routers import (
 )
 from api.security import CurrentUser
 from api.security.deps import require_auth
+from api.services.readiness import readiness_status
 from api.services.seed_data import seed_practice_items
 from api.settings import REFERENCE_AUDIO_DIR, settings, supabase_auth_enabled
 from api.ws.routes import register_realtime
@@ -44,9 +46,10 @@ async def seed_startup_data(db: AsyncSession) -> None:
 async def lifespan(app: FastAPI):
     setup_logging()
     log.info("starting %s v%s", settings.app_name, __version__)
-    await init_db()
-    async with SessionLocal() as db:
-        await seed_startup_data(db)
+    async with asyncio.timeout(settings.startup_timeout_seconds):
+        await init_db()
+        async with SessionLocal() as db:
+            await seed_startup_data(db)
     yield
     log.info("shutdown")
 
@@ -108,6 +111,15 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         """Liveness probe; returns the running version."""
         return {"status": "ok", "version": __version__}
+
+    @v1.get("/readiness", tags=["health"], summary="Dependency readiness check")
+    async def readiness() -> JSONResponse:
+        """Report whether database, storage, ffmpeg, and model files are ready."""
+        ready, checks = await readiness_status()
+        return JSONResponse(
+            status_code=200 if ready else 503,
+            content={"status": "ready" if ready else "not_ready", "checks": checks},
+        )
 
     app.include_router(v1)
     register_realtime(app)
