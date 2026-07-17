@@ -13,6 +13,7 @@ from api import __version__
 from api.core.errors import ApiError
 from api.core.logging import setup_logging
 from api.core.middleware import RequestIdMiddleware, register_exception_handlers
+from api.core.rate_limit import RateLimitMiddleware
 from api.db import SessionLocal, get_db, init_db
 from api.db.seed import seed_dev_user
 from api.docs import DESCRIPTION, TAGS
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
         CORSMiddleware,

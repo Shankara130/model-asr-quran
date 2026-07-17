@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     readiness_timeout_seconds: int = 10
     inference_queue_timeout_seconds: int = 15
     inference_timeout_seconds: int = 120
+    rate_limit_auth_per_minute: int = 10
+    rate_limit_upload_per_minute: int = 30
+    rate_limit_evaluate_per_minute: int = 10
 
 
 settings = Settings()
