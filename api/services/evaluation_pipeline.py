@@ -153,6 +153,52 @@ async def run_evaluation(
     audio_url: str | None,
     user_id: str,
 ) -> None:
+    """Run one evaluation and always remove its user recording afterwards."""
+    audio_path = _audio_path(audio_url)
+    try:
+        await _run_evaluation_inner(result_id, session_id, item_info, audio_url, user_id)
+    finally:
+        if audio_path is not None:
+            await asyncio.to_thread(_delete_audio_file, audio_path, settings.audio_dir)
+        await _clear_consumed_audio_location(result_id)
+
+
+def _delete_audio_file(audio_path: Path, audio_root: Path) -> bool:
+    try:
+        resolved = audio_path.resolve()
+        root = audio_root.resolve()
+        if not resolved.is_relative_to(root) or not resolved.is_file():
+            return False
+        resolved.unlink()
+        try:
+            resolved.parent.rmdir()
+        except OSError:
+            pass
+        return True
+    except OSError:
+        return False
+
+
+async def _clear_consumed_audio_location(result_id: str) -> None:
+    async with SessionLocal() as db:
+        result = await db.get(EvaluationResult, result_id)
+        if result is None or result.audio_upload_id is None:
+            return
+        upload = await db.get(AudioUpload, result.audio_upload_id)
+        if upload is None:
+            return
+        upload.audio_url = None
+        upload.storage_key = None
+        await db.commit()
+
+
+async def _run_evaluation_inner(
+    result_id: str,
+    session_id: str,
+    item_info: dict,
+    audio_url: str | None,
+    user_id: str,
+) -> None:
     """Run the blocking ASR + mapping off the event loop, then persist + broadcast."""
     audio_path = _audio_path(audio_url)
     async with _semaphore:

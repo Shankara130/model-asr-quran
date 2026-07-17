@@ -29,7 +29,7 @@ rtk proxy .venv/bin/python -m uvicorn api.app:create_app --factory --host 127.0.
 7. Upload `001001.wav`.
 8. Request evaluation dan jelaskan status `queued/processing`.
 9. Ambil result final: status completed, skor 93, empat highlight.
-10. Tunjukkan row evaluation di Supabase tanpa membuka credential.
+10. Tunjukkan row evaluation di Supabase dan bahwa lokasi rekaman telah dikosongkan.
 11. Restart backend dan ambil result yang sama untuk membuktikan persistence.
 12. Tampilkan perbandingan sampel benar 93.33% dan mismatch 36–47%.
 13. Tampilkan self-retry/pengulangan dari UI tester atau regression evidence.
@@ -45,6 +45,7 @@ Model menghasilkan transkripsi fonem awal. Sistem kemudian membandingkannya deng
 - Jika inference cold start lambat, mulai backend sebelum merekam dan gunakan health/readiness untuk membuktikan kesiapan.
 - Jangan gunakan Al-Fatihah 1:5 sebagai contoh bacaan benar utama karena hasil referensinya masih 75.68%.
 - Jangan tampilkan `.env`, access token, service-role key, database URL, atau UUID pengguna.
+- Jelaskan bahwa rekaman pengguna langsung dihapus setelah evaluasi final; hanya hasil yang disimpan.
 
 ## Integrasi Flutter
 

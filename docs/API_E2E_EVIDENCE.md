@@ -49,7 +49,7 @@ Sampel: Husary 1:1, WAV, 333760 byte.
 |---|---|
 | Buat session | HTTP 201 |
 | Multipart upload | HTTP 200 |
-| File privat tersimpan | Ya, 333760 byte |
+| File privat tersedia selama inference | Ya, 333760 byte |
 | Row `audio_uploads` tersimpan | Ya |
 | Request evaluate | HTTP 201 |
 | Status pending dapat diambil | Ya |
@@ -59,6 +59,11 @@ Sampel: Husary 1:1, WAV, 333760 byte.
 | Result dapat diambil setelah restart | Ya |
 | Model name tersimpan | `zipformer_p_quran` |
 | Model fingerprint tersimpan | SHA-256, ya |
+| File rekaman setelah evaluation final | Dihapus |
+| `audio_url`/`storage_key` setelah evaluation | Dikosongkan |
+
+Rekaman pengguna bersifat sekali pakai. Result, skor, highlight, dan metadata model tetap
+tersimpan, tetapi retry sesudah evaluation final memerlukan rekaman baru.
 
 ## Chunked Upload
 
@@ -103,4 +108,3 @@ Belum lengkap atau belum dibuktikan untuk video:
 - Retention cleanup audio belum dijalankan sebagai scheduled job.
 - Full SQLite-based API test harness macet pada environment ini; E2E PostgreSQL nyata digunakan sebagai bukti runtime.
 - Source Flutter tidak tersedia di repository ini, sehingga integrasi mobile belum dapat diimplementasikan di sini.
-
