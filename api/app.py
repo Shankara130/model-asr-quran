@@ -29,6 +29,7 @@ from api.routers import (
 from api.security import CurrentUser
 from api.security.deps import require_auth
 from api.services.readiness import readiness_status
+from api.services.runtime_cleanup import cleanup_orphaned_runtime_data
 from api.services.seed_data import seed_practice_items
 from api.settings import REFERENCE_AUDIO_DIR, settings, supabase_auth_enabled
 from api.ws.routes import register_realtime
@@ -37,6 +38,9 @@ log = logging.getLogger("api")
 
 
 async def seed_startup_data(db: AsyncSession) -> None:
+    cleanup = await cleanup_orphaned_runtime_data(db)
+    if any(cleanup.values()):
+        log.info("cleaned orphaned user audio: %s", cleanup)
     if not supabase_auth_enabled():
         await seed_dev_user(db)
     await seed_practice_items(db)

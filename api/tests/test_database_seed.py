@@ -50,11 +50,14 @@ async def test_practice_seed_is_idempotent():
 async def test_startup_skips_dev_user_when_supabase_auth_is_enabled(monkeypatch):
     dev_seed = AsyncMock()
     practice_seed = AsyncMock()
+    cleanup = AsyncMock(return_value={})
     monkeypatch.setattr(app, "supabase_auth_enabled", lambda: True)
     monkeypatch.setattr(app, "seed_dev_user", dev_seed)
     monkeypatch.setattr(app, "seed_practice_items", practice_seed)
+    monkeypatch.setattr(app, "cleanup_orphaned_runtime_data", cleanup)
 
     await app.seed_startup_data(object())
 
     dev_seed.assert_not_awaited()
     practice_seed.assert_awaited_once()
+    cleanup.assert_awaited_once()
