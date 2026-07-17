@@ -201,9 +201,39 @@ async def _run_evaluation_inner(
 ) -> None:
     """Run the blocking ASR + mapping off the event loop, then persist + broadcast."""
     audio_path = _audio_path(audio_url)
-    async with _semaphore:
+    try:
+        await asyncio.wait_for(
+            _semaphore.acquire(), timeout=settings.inference_queue_timeout_seconds
+        )
+    except TimeoutError:
+        await _fail(
+            session_id,
+            result_id,
+            "evaluation_failed",
+            "Antrean evaluasi sedang penuh. Silakan rekam ulang.",
+            retryable=True,
+        )
+        return
+
+    try:
         try:
-            mapped, prediction = await asyncio.to_thread(_run_blocking, item_info, audio_path)
+            inference = asyncio.create_task(
+                asyncio.to_thread(_run_blocking, item_info, audio_path)
+            )
+            try:
+                mapped, prediction = await asyncio.wait_for(
+                    asyncio.shield(inference), timeout=settings.inference_timeout_seconds
+                )
+            except TimeoutError:
+                await _fail(
+                    session_id,
+                    result_id,
+                    "evaluation_failed",
+                    "Evaluasi melewati batas waktu.",
+                    retryable=True,
+                )
+                await inference
+                return
             model_name, model_version = await asyncio.to_thread(asr_provider.model_metadata)
         except ModelUnavailable as exc:
             await _fail(session_id, result_id, "audio_unprocessable", exc.message, retryable=False)
@@ -224,6 +254,8 @@ async def _run_evaluation_inner(
                 retryable=True,
             )
             return
+    finally:
+        _semaphore.release()
 
     async with SessionLocal() as db:
         if is_sqlite():

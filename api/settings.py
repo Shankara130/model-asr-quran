@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     cors_origins: tuple[str, ...] = ("*",)
     startup_timeout_seconds: int = 30
     readiness_timeout_seconds: int = 10
+    inference_queue_timeout_seconds: int = 15
+    inference_timeout_seconds: int = 120
 
 
 settings = Settings()
