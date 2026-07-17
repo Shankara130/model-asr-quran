@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 import httpx
 from sqlalchemy import select
@@ -118,11 +119,18 @@ async def sync_supabase_user(
     *,
     requested_name: str | None = None,
 ) -> User:
-    user_id = str(user["id"])
-    email = str(user.get("email") or "")
+    try:
+        user_id = str(UUID(str(user["id"])))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ApiError("auth_invalid_credentials") from exc
+    email = str(user.get("email") or "").strip()
+    if not email:
+        raise ApiError("auth_invalid_credentials")
     row = await db.get(User, user_id)
     if row is None and email:
         row = await db.scalar(select(User).where(User.email == email))
+        if row is not None and row.id != user_id:
+            raise ApiError("auth_identity_conflict")
     if row is None:
         row = User(
             id=user_id,
@@ -136,7 +144,6 @@ async def sync_supabase_user(
         await db.flush()
         db.add(UserPreference(user_id=row.id))
     else:
-        row.id = user_id
         row.email = email or row.email
         if requested_name:
             row.name = requested_name

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -13,11 +14,20 @@ class Base(DeclarativeBase):
     pass
 
 
+_url = make_url(settings.database_url)
+_is_sqlite_url = _url.get_backend_name().startswith("sqlite")
+_connect_args = (
+    {"check_same_thread": False}
+    if _is_sqlite_url
+    else {"timeout": 10, "statement_cache_size": 0}
+)
+
 engine = create_async_engine(
     settings.database_url,
     echo=False,
     future=True,
-    connect_args={"check_same_thread": False},
+    pool_pre_ping=not _is_sqlite_url,
+    connect_args=_connect_args,
 )
 
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)

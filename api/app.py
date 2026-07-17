@@ -28,10 +28,16 @@ from api.routers import (
 from api.security import CurrentUser
 from api.security.deps import require_auth
 from api.services.seed_data import seed_practice_items
-from api.settings import REFERENCE_AUDIO_DIR, settings
+from api.settings import REFERENCE_AUDIO_DIR, settings, supabase_auth_enabled
 from api.ws.routes import register_realtime
 
 log = logging.getLogger("api")
+
+
+async def seed_startup_data(db: AsyncSession) -> None:
+    if not supabase_auth_enabled():
+        await seed_dev_user(db)
+    await seed_practice_items(db)
 
 
 @asynccontextmanager
@@ -40,8 +46,7 @@ async def lifespan(app: FastAPI):
     log.info("starting %s v%s", settings.app_name, __version__)
     await init_db()
     async with SessionLocal() as db:
-        await seed_dev_user(db)
-        await seed_practice_items(db)
+        await seed_startup_data(db)
     yield
     log.info("shutdown")
 
