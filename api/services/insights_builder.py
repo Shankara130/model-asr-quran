@@ -74,7 +74,7 @@ async def build_weekly(db: AsyncSession, user_id: str, week_start: str) -> Weekl
     weekly_letters = await _letter_insights_for(db, result_ids)
     focus_letter = None
     if weekly_letters:
-        focus_letter = min(weekly_letters, key=lambda x: x.score).letter
+        focus_letter = min(weekly_letters, key=lambda x: x.mastery_score).letter
 
     practice_count = len({r.session_id for r in results})
 
@@ -100,7 +100,11 @@ async def build_weekly(db: AsyncSession, user_id: str, week_start: str) -> Weekl
         summary=summary,
         trend=trend,
         letter_mastery=[
-            WeeklyLetterMastery(letter=wl.letter, score=wl.score, mistake_count=wl.mistake_count)
+            WeeklyLetterMastery(
+                letter=wl.letter,
+                score=wl.mastery_score,
+                mistake_count=wl.mistake_count,
+            )
             for wl in weekly_letters
         ],
         suggestion=suggestion,
